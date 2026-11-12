@@ -121,21 +121,35 @@ function remove(id, opts) {
   }
 }
 
-/** Смена папки данных кампании; move=true — перенести файлы приложения из старой папки. kv к этому моменту уже сброшен вызывающим. */
-function relocateData(id, newDir, move) {
+/**
+ * Смена папки данных кампании. opts: {move, conflict:'overwrite'|'merge'}.
+ * move=true — перенести файлы приложения из старой папки; в новую папку до завершения переноса ничего не пишется.
+ * Если в новой папке уже есть файлы приложения, а conflict не задан — ошибка TARGET_HAS_DATA (вызывающий должен спросить).
+ * Ошибка сохранения кампании после переноса откатывает перенос. kv к этому моменту уже сброшен вызывающим.
+ */
+function relocateData(id, newDir, opts) {
+  const o = typeof opts === 'object' && opts ? opts : { move: !!opts };
   const c = get(id);
   if (!c) throw new Error('CAMPAIGN_NOT_FOUND');
   if (!newDir || typeof newDir !== 'string') throw new Error('DATA_DIR_REQUIRED');
   const from = c.folders && c.folders.data, to = path.resolve(newDir);
-  if (list().some((o) => o.id !== id && o.folders && o.folders.data && path.resolve(o.folders.data) === to)) throw new Error('DATA_DIR_IN_USE');
-  fs.mkdirSync(to, { recursive: true });
-  let moved = 0;
-  if (move && from) {
-    const shared = list().some((o) => o.id !== id && o.folders && o.folders.data && path.resolve(o.folders.data) === path.resolve(from));
-    if (!shared) moved = datafiles.moveOwned(from, to).moved;
+  if (list().some((x) => x.id !== id && x.folders && x.folders.data && path.resolve(x.folders.data) === to)) throw new Error('DATA_DIR_IN_USE');
+  let moved = 0, skipped = 0, did = false;
+  if (o.move && from && path.resolve(from).toLowerCase() !== to.toLowerCase()) {
+    const shared = list().some((x) => x.id !== id && x.folders && x.folders.data && path.resolve(x.folders.data) === path.resolve(from));
+    if (!shared) {
+      if (!o.conflict && datafiles.inspect(to).owned > 0) throw new Error('TARGET_HAS_DATA');
+      const r = datafiles.moveOwned(from, to, { merge: o.conflict === 'merge' });
+      moved = r.moved; skipped = r.skipped; did = true;
+    }
   }
-  const r = update(id, { folders: { data: to } });
-  return Object.assign({}, r, { _moved: moved });
+  let r;
+  try { r = update(id, { folders: { data: to } }); }
+  catch (e) {
+    if (did && moved) { try { datafiles.moveOwned(to, from, { merge: false }); } catch (_) {} }
+    throw e;
+  }
+  return Object.assign({}, r, { _moved: moved, _skipped: skipped });
 }
 
 /** Absolute base folder of a root in the current campaign, or null if not set. */

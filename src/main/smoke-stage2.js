@@ -98,6 +98,70 @@ module.exports = async function stage2(k) {
     must((await ex('VTT.gm._state.scene.tokens.length')) === 1, 'токен сцены не восстановлен');
   }, 900);
 
+
+  // --- настройки: смена папки данных через реальный диалог (подпапка -> перенос), как делает пользователь
+  const smokeMod = require('./smoke');
+  const crypto = require('crypto');
+  const sha = (f) => crypto.createHash('sha1').update(fs.readFileSync(f)).digest('hex');
+  const clickBtn = (sel, txt) => `(function(){var b=[].slice.call(document.querySelectorAll(${JSON.stringify(sel)})).filter(function(x){return ${JSON.stringify(txt)}===''||x.textContent.indexOf(${JSON.stringify(txt)})>=0;})[0]; if(!b) return false; b.click(); return true;})()`;
+  const reloc = {};
+  await step('2-relocate-prepare', async () => {
+    const cur = campaigns.current();
+    reloc.id = cur.id; reloc.old = cur.folders.data;
+    reloc.target = path.join(tmp, 'extras'); reloc.sub = path.join(reloc.target, 'Universal DnD Battle map');
+    fs.mkdirSync(reloc.target, { recursive: true });
+    fs.writeFileSync(path.join(reloc.target, 'big.json'), '{"x":1}');
+    fs.writeFileSync(path.join(reloc.old, 'чужая заметка.md'), 'не трогать');
+    fs.mkdirSync(path.join(reloc.old, 'thumbs'), { recursive: true });
+    fs.writeFileSync(path.join(reloc.old, 'thumbs', 'abc.jpg'), 'jpgdata');
+    await ex('VTT.gm.flush()');
+    reloc.files = datafilesList(reloc.old);
+    must(reloc.files.includes('library.tokens.json') && reloc.files.some((n) => /^scenes\//.test(n)), 'в старой папке нет файлов приложения: ' + reloc.files);
+    reloc.hash = {}; for (const n of reloc.files) reloc.hash[n] = sha(path.join(reloc.old, n));
+    reloc.lib = await ex('VTT.gm._state.lib.length');
+  });
+  function datafilesList(d) { return require('./datafiles').ownedFiles(d).map((f) => f.rel).sort(); }
+  const dlgTitle = (t) => `!!([].slice.call(document.querySelectorAll('.vtt-ui-title')).some(function(x){return x.textContent.indexOf(${JSON.stringify(t)})>=0;}))`;
+  const startPick = async () => {
+    smokeMod.pickQueue.push(reloc.target);
+    await ex('VTT.settings.open()');
+    await waitFor("document.querySelectorAll('#setBody .cfg-line button').length > 0", 4000);
+    await ex("document.querySelector('#setBody .cfg-line button').click()");       // «Выбрать…» папку данных
+    await waitFor(dlgTitle('чужие файлы'), 4000);                                    // предупреждение о чужих файлах
+    await ex(clickBtn('.vtt-ui-dialog .vtt-ui-btn-ok', ''));                       // «Создать подпапку»
+    await waitFor(dlgTitle('Перенести данные'), 4000);                               // предложение перенести
+  };
+  await step('2-relocate-cancel', async () => {
+    await startPick();
+    await ex(clickBtn('.vtt-ui-dialog .vtt-ui-btn', 'Отмена'));
+    await sleep(500);
+    must(path.resolve(campaigns.get(reloc.id).folders.data) === path.resolve(reloc.old), 'отмена переноса изменила папку данных');
+    must(!fs.existsSync(reloc.sub), 'отмена переноса создала новую папку');
+    must(datafilesList(reloc.old).length === reloc.files.length, 'отмена переноса тронула старую папку');
+    await ex('VTT.settings.close()');
+  });
+  await step('2-relocate-via-settings', async () => {
+    await startPick();
+    must(!fs.existsSync(reloc.sub) || !datafilesList(reloc.sub).length, 'в новую папку записано до подтверждения переноса');
+    await ex(clickBtn('.vtt-ui-dialog .vtt-ui-btn-ok', ''));
+    await waitFor("/перенесены/.test(document.getElementById('setMsg').textContent)", 8000);
+    await sleep(800);
+    const c = campaigns.get(reloc.id);
+    must(path.resolve(c.folders.data) === path.resolve(reloc.sub), 'кампания не сохранила новую папку: ' + c.folders.data);
+    const now = datafilesList(reloc.sub);
+    must(JSON.stringify(now.filter((n) => !/^thumbs\//.test(n))) === JSON.stringify(reloc.files.filter((n) => !/^thumbs\//.test(n))), 'состав файлов в новой папке: ' + now);
+    for (const n of reloc.files) must(sha(path.join(reloc.sub, n)) === reloc.hash[n], 'содержимое изменилось: ' + n);
+    must(datafilesList(reloc.old).length === 0, 'в старой папке остались файлы приложения: ' + datafilesList(reloc.old));
+    must(fs.readFileSync(path.join(reloc.old, 'чужая заметка.md'), 'utf8') === 'не трогать', 'чужой файл пострадал');
+    must(fs.existsSync(path.join(reloc.target, 'big.json')), 'чужой файл в целевой папке пострадал');
+    must((await ex("window.host.campaigns.current().then(function(c){return c.folders.data;})")) === c.folders.data, 'renderer видит другую папку');
+    const lib = await ex("window.host.fs.readText('data','library.tokens.json').then(function(t){return JSON.parse(t).tokens ? JSON.parse(t).tokens.length : JSON.parse(t).length;})");
+    must(lib === reloc.lib, 'библиотека в новой папке отличается: ' + lib + ' vs ' + reloc.lib);
+    const sc = await ex('window.host.scenes.list()');
+    must(sc.length === 1, 'сцены не читаются из новой папки: ' + JSON.stringify(sc));
+    await ex('VTT.settings.close()');
+  }, 700);
+
   // --- слежение за папками
   await step('2-watch-map-file', async () => {
     await ex('window.__watch = []; window.host.watch.onChange(function(e){ window.__watch.push(e); }); 0');

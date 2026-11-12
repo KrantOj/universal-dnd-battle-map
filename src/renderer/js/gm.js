@@ -1257,9 +1257,10 @@
     await loadCampaignData();
   }
   function onCampaign(c) {
-    var prev = mapsRoot(), prevId = S.camp && S.camp.id;
+    var prev = mapsRoot(), prevId = S.camp && S.camp.id, prevData = S.camp && S.camp.folders && S.camp.folders.data;
     S.camp = c || null;
     if (!c || c.id !== prevId) { reinit(); return; }
+    if ((c.folders && c.folders.data) !== prevData) { reinit(); return; }   // другая папка данных: библиотека, сцены, закрепления — заново с диска
     if (mapsRoot() !== prev) { refreshMaps(); reloadLibrary(); }
   }
   function onWatch(ev) {

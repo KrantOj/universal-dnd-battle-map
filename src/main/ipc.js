@@ -10,6 +10,7 @@ const windows = require('./windows');
 const logger = require('./log');
 const transfer = require('./transfer');
 const report = require('./report');
+const smoke = require('./smoke');
 
 const allowedSaves = new Set(); // paths returned by dialog.saveFile, consumable by fs.writeAbs once
 
@@ -44,7 +45,7 @@ function register() {
   h('campaigns:relocateData', (e, id, dir, o) => {
     const old = (campaigns.get(id) || {}).folders;
     kv.flushAll();
-    const r = campaigns.relocateData(id, dir, !!(o && o.move));
+    const r = campaigns.relocateData(id, dir, { move: !!(o && o.move), conflict: o && o.conflict });
     if (old && old.data) kv.invalidate(old.data);
     return r;
   });
@@ -73,6 +74,7 @@ function register() {
   h('kv:set', (e, k, v) => kv.set(k, v));
 
   h('dialog:pickFolder', async (e, o = {}) => {
+    if (smoke.enabled && smoke.pickQueue.length) return smoke.pickQueue.shift();   // smoke: подготовленные пути вместо системного диалога
     const r = await dialog.showOpenDialog(parentOf(e), { title: o.title, defaultPath: o.defaultPath, properties: ['openDirectory', 'createDirectory'] });
     return r.canceled || !r.filePaths.length ? null : r.filePaths[0];
   });

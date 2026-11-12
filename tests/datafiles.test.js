@@ -79,3 +79,25 @@ test('импорт: чужие записи data/ в архиве игнорир
   assert.strictEqual(archive.resolveEntry('data/Заметка.md', map), null);
   assert.strictEqual(archive.resolveEntry('data/Музыка/a.mp3', map), null);
 });
+
+test('moveOwned: ошибка посреди переноса не оставляет мусора и не трогает исходник', () => {
+  const a = tmp('mvfail'), b = tmp('mvfailb'); vault(a);
+  fs.mkdirSync(path.join(b, 'scenes'), { recursive: true });
+  fs.mkdirSync(path.join(b, 'scenes', 'a.scene.json' + '.udbmmv.tmp'));   // мешает временному файлу -> копирование падает
+  assert.throws(() => df.moveOwned(a, b));
+  assert.ok(fs.existsSync(path.join(a, 'kv.json')) && fs.existsSync(path.join(a, 'scenes', 'a.scene.json')));
+  assert.ok(!fs.existsSync(path.join(b, 'kv.json')) && !fs.existsSync(path.join(b, 'library.tokens.json')));
+});
+
+test('moveOwned: merge оставляет файлы цели, overwrite заменяет', () => {
+  const a = tmp('mm1'), b = tmp('mm2'); vault(a);
+  fs.writeFileSync(path.join(b, 'kv.json'), 'target');
+  const m = df.moveOwned(a, b, { merge: true });
+  assert.strictEqual(m.skipped, 1);
+  assert.strictEqual(fs.readFileSync(path.join(b, 'kv.json'), 'utf8'), 'target');
+  assert.ok(fs.existsSync(path.join(a, 'kv.json')));          // пропущенный остаётся в старой
+  assert.ok(fs.existsSync(path.join(b, 'library.tokens.json')));
+  const a2 = tmp('mm3'); vault(a2);
+  df.moveOwned(a2, b, { merge: false });
+  assert.notStrictEqual(fs.readFileSync(path.join(b, 'kv.json'), 'utf8'), 'target');
+});

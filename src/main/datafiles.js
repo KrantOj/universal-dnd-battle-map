@@ -78,23 +78,45 @@ function removeOwned(dir) {
   return { removed, folderRemoved: rmdirIfEmpty(dir) };
 }
 
-/** Переносит файлы приложения из from в to: копирует, проверяет размер, удаляет оригиналы. Существующие файлы в to перезаписываются. -> {moved} */
-function moveOwned(from, to) {
+const MOVE_TMP = '.udbmmv.tmp';
+
+/**
+ * Переносит файлы приложения из from в to, транзакционно: сначала всё копируется во временные файлы рядом с целью
+ * и проверяется по размеру; настоящие имена в to появляются только после того, как скопировано ВСЁ; оригиналы удаляются в самом конце.
+ * При любой ошибке временные файлы убираются, to и from остаются как были.
+ * opts.merge=true — файлы, уже существующие в to, не трогаем (они остаются и в from); иначе перезаписываем. -> {moved, skipped}
+ */
+function moveOwned(from, to, opts) {
   const a = path.resolve(from), b = path.resolve(to);
-  if (a.toLowerCase() === b.toLowerCase()) return { moved: 0 };
-  const files = ownedFiles(a);
-  const done = [];
-  for (const f of files) {
+  if (a.toLowerCase() === b.toLowerCase()) return { moved: 0, skipped: 0 };
+  const merge = !!(opts && opts.merge);
+  const plan = [];
+  let skipped = 0;
+  for (const f of ownedFiles(a)) {
     const dest = pu.resolveIn(b, f.rel);
-    fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.copyFileSync(f.abs, dest);
-    if (fs.statSync(dest).size !== f.size) throw new Error('MOVE_VERIFY_FAILED');
-    done.push(f);
+    if (merge && fs.existsSync(dest)) { skipped++; continue; }
+    plan.push({ f, dest, tmp: dest + MOVE_TMP });
   }
-  for (const f of done) { try { fs.unlinkSync(f.abs); } catch (_) {} }
+  const made = [], newDirs = [];
+  try {
+    for (const x of plan) {
+      const dir = path.dirname(x.dest);
+      if (!fs.existsSync(dir)) { fs.mkdirSync(dir, { recursive: true }); newDirs.push(dir); }
+      fs.copyFileSync(x.f.abs, x.tmp);
+      made.push(x.tmp);
+      if (fs.statSync(x.tmp).size !== x.f.size) throw new Error('MOVE_VERIFY_FAILED');
+    }
+    const renamed = [];
+    for (const x of plan) { fs.renameSync(x.tmp, x.dest); renamed.push(x); made.splice(made.indexOf(x.tmp), 1); }
+  } catch (e) {
+    for (const t of made) { try { fs.unlinkSync(t); } catch (_) {} }
+    for (const d of newDirs.reverse()) rmdirIfEmpty(d);
+    throw e;
+  }
+  for (const x of plan) { try { fs.unlinkSync(x.f.abs); } catch (_) {} }
   for (const d of DIRS) rmdirIfEmpty(path.join(a, d.name));
   rmdirIfEmpty(a);
-  return { moved: done.length };
+  return { moved: plan.length, skipped };
 }
 
 module.exports = { FILES, DIRS, SUBFOLDER, isOwnedRel, isCacheRel, ownedFiles, foreignEntries, inspect, removeOwned, moveOwned };

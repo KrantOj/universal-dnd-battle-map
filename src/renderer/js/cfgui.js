@@ -142,5 +142,5 @@
     return { el: row, input: cb };
   }
 
-  VTT.cfg = { el: el, folderRow: folderRow, guardDataDir: guardDataDir, mediaEditor: mediaEditor, checkRow: checkRow };
+  VTT.cfg = { el: el, choose3: choose3, folderRow: folderRow, guardDataDir: guardDataDir, mediaEditor: mediaEditor, checkRow: checkRow };
 })();

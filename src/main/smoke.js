@@ -56,7 +56,7 @@ async function run(windows, campaigns) {
       try {
         const img = await w.webContents.capturePage();
         fs.writeFileSync(path.join(tmp, 'shots', `${nn}-${name}-${who}.png`), img.toPNG());
-      } catch (e) { report.errors.push(`capture ${name}/${who}: ${e.message}`); }
+      } catch (e) { (report.warnings = report.warnings || []).push(`capture ${name}/${who}: ${e.message}`); }   // скриншот — не проверка: экран может быть погашен
     }
   };
   const gm = () => windows.getGmWindow().webContents;
@@ -158,4 +158,5 @@ async function run(windows, campaigns) {
   finish(report.errors.length || report.consoleErrors.length ? 1 : 0);
 }
 
-module.exports = { enabled, wizardOnly, early, run };
+const pickQueue = [];   // ответы для host.dialog.pickFolder в smoke
+module.exports = { enabled, wizardOnly, early, run, pickQueue };
