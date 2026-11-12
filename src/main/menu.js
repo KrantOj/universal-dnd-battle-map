@@ -1,0 +1,56 @@
+'use strict';
+const { Menu, app, dialog } = require('electron');
+const windows = require('./windows');
+const logger = require('./log');
+const { t } = require('./i18n');
+
+function send(action) {
+  const w = windows.getGmWindow();
+  if (w && !w.isDestroyed()) w.webContents.send('menu:action', action);
+}
+
+function about() {
+  const w = windows.getGmWindow();
+  dialog.showMessageBox(w || undefined, {
+    type: 'info',
+    title: t('menu.about.title'),
+    message: 'Universal DnD Battle map',
+    detail: t('menu.about.detail', { version: app.getVersion(), electron: process.versions.electron }),
+    buttons: ['OK'],
+  });
+}
+
+function build() {
+  const template = [
+    {
+      label: t('menu.file'),
+      submenu: [
+        { label: t('menu.file.importMap'), click: () => send('import-map') },
+        { type: 'separator' },
+        { label: t('menu.file.campaigns'), click: () => send('campaigns') },
+        { label: t('menu.file.settings'), click: () => send('settings') },
+        { label: t('menu.file.wizard'), click: () => send('wizard') },
+        { type: 'separator' },
+        { label: t('menu.file.quit'), role: 'quit' },
+      ],
+    },
+    {
+      label: t('menu.view'),
+      submenu: [
+        { label: t('menu.view.fullscreen'), role: 'togglefullscreen' },
+        { label: t('menu.view.reload'), role: 'reload' },
+        { label: t('menu.view.devtools'), role: 'toggleDevTools' },
+      ],
+    },
+    {
+      label: t('menu.help'),
+      submenu: [
+        { label: t('menu.help.logs'), click: () => { logger.openFolder().catch(() => {}); } },
+        { label: t('menu.help.about'), click: about },
+      ],
+    },
+  ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+module.exports = { build };

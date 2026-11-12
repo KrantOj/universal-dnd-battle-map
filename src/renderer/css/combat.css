@@ -1,0 +1,113 @@
+/* Бой: инициатива, здоровье, кубики, счётчики (панель мастера) + показ броска игрокам */
+#app { grid-template-columns: 1fr 340px; }
+#app.nopanel { grid-template-columns: 1fr 0; }
+
+.cb { background: var(--panel2); border: 1px solid var(--line); border-left-width: 4px; border-radius: 6px; padding: 4px 6px; }
+.cb.k-pc { border-left-color: var(--pc); } .cb.k-ally { border-left-color: var(--ally); }
+.cb.k-enemy { border-left-color: var(--enemy); } .cb.k-neutral { border-left-color: var(--neutral); }
+.cb.hid { opacity: .6; } .cb.dead { opacity: .45; } .cb.dead .nm { text-decoration: line-through; }
+.cb.turn { outline: 2px solid #f2cc60; outline-offset: -2px; background: #2d2a1a; }
+.cb .l1, .cb .l2 { display: flex; align-items: center; gap: 4px; }
+.cb .l2 { margin-top: 3px; }
+.cb .mk { width: 12px; color: transparent; font-size: 11px; flex: none; }
+.cb.turn .mk { color: #f2cc60; }
+.cb .nm { flex: 1; font-weight: 600; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cb input { padding: 2px 4px; font-size: 12px; text-align: center; min-width: 0; }
+.cb .ci { width: 42px; font-weight: 700; font-size: 14px; }
+.cb.noinit .ci { border-style: dashed; color: var(--muted); }
+.cb button.cd { padding: 0 5px; font-size: 13px; }
+.cb .hp { flex: 1; min-width: 0; }
+.cb .hpt { font-size: 12px; color: var(--text); white-space: nowrap; }
+.cb .hpb { height: 4px; background: #0d1117; border-radius: 2px; margin-top: 2px; overflow: hidden; }
+.cb .hpb > i { display: block; height: 100%; width: 0; }
+.cb .cd2 { width: 62px; } .cb .cx { width: 44px; } .cb .cm { width: 36px; } .cb .ca { width: 36px; } .cb .ct { width: 48px; }
+
+.dice-btns { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.dice-btns button.die { display: flex; flex-direction: column; align-items: center; gap: 0; padding: 4px 0 2px; color: #c9d1d9; min-width: 0; }
+.dice-btns button.die:hover { color: #f2cc60; }
+.dice-btns button.die:active { transform: translateY(1px); }
+.dice-btns button.die span { font-size: 10px; color: var(--muted); line-height: 1.1; }
+.dice-btns .dn { fill: currentColor; stroke: none; font: 700 8px system-ui, sans-serif; }
+.dice-row button { padding: 3px 9px; }
+.dice-row { display: flex; gap: 6px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
+.dice-row input[type=text] { flex: 1; min-width: 0; }
+.dice-row .chk { display: flex; align-items: center; gap: 4px; flex: 1; font-size: 12px; color: var(--muted); }
+#diceLog { margin-top: 6px; max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
+.dl { display: flex; gap: 8px; align-items: center; background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 3px 7px; cursor: pointer; }
+.dl:hover { border-color: var(--accent); }
+.dl .dt { font-size: 20px; min-width: 34px; text-align: center; }
+.dl .dh { font-size: 12px; color: var(--muted); }
+.dl .dd { font-size: 12px; font-family: ui-monospace, Consolas, monospace; word-break: break-word; }
+.dl.nat20 { border-color: #3fb950; } .dl.nat20 .dt { color: #3fb950; }
+.dl.nat1 { border-color: #f85149; } .dl.nat1 .dt { color: #f85149; }
+
+.cn { background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; }
+.cn.expired { border-color: #f85149; background: #2a1517; }
+.cn .l1 { display: flex; align-items: center; gap: 6px; }
+.cn .nm { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cn .tg, .cn .tk { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.cn .l1 button { padding: 0 6px; }
+.cn .l2 { display: flex; align-items: center; gap: 4px; margin-top: 3px; }
+.cn .cv { width: 52px; text-align: center; font-weight: 700; }
+.cn-form { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.cn-form input[type=text] { width: 100%; }
+.cn-row { display: flex; gap: 6px; }
+.cn-row input { width: 64px; } .cn-row select { flex: 1; min-width: 0; }
+
+/* бросок кубика у игроков: кубик влетает, кувыркается, подпрыгивает и замирает на результате */
+#rollShow { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  pointer-events: none; opacity: 0; transition: opacity .35s; color: #f2cc60; font-family: Georgia, serif;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,.62) 0%, rgba(0,0,0,.38) 45%, rgba(0,0,0,0) 75%); }
+#rollShow.on { opacity: 1; }
+#rollShow .rs-who { font-size: 22px; color: #e6d7a8; text-shadow: 0 2px 8px #000; min-height: 28px; opacity: 0; transition: opacity .4s; }
+#rollShow.throw .rs-who { opacity: 1; }
+#rollShow .rs-stage { position: relative; width: min(34vh, 300px); height: min(34vh, 300px); perspective: 900px; }
+#rollShow .rs-die { position: absolute; inset: 0; transform-style: preserve-3d; filter: drop-shadow(0 14px 22px rgba(0,0,0,.75)); }
+#rollShow .rs-die svg { width: 100%; height: 100%; overflow: visible; }
+#rollShow .rs-die svg * { fill: rgba(22,26,32,.96); stroke: currentColor; stroke-width: 1.1; }
+#rollShow .rs-die svg polygon + polygon, #rollShow .rs-die svg path { fill: rgba(255,255,255,.04); }
+#rollShow.throw .rs-die { animation: rsThrow 1.15s cubic-bezier(.22,.75,.3,1) both; }
+#rollShow .rs-num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #f3e6c4;
+  font-size: min(15vh, 130px); text-shadow: 0 3px 10px #000; transform: scale(.85); opacity: .9; }
+#rollShow .rs-num[data-len="3"] { font-size: min(11vh, 96px); } #rollShow .rs-num[data-len="4"] { font-size: min(8vh, 70px); }
+#rollShow.throw:not(.landed) .rs-num { animation: rsFlicker .18s steps(2) infinite; opacity: .55; }
+#rollShow.landed .rs-num { animation: rsPop .5s cubic-bezier(.2,1.6,.4,1) both; opacity: 1; }
+#rollShow.landed .rs-die { animation: none; filter: drop-shadow(0 0 26px rgba(242,204,96,.55)) drop-shadow(0 14px 22px rgba(0,0,0,.75)); }
+#rollShow .rs-badge { font-size: 30px; letter-spacing: .06em; text-shadow: 0 2px 10px #000; min-height: 38px; }
+#rollShow .rs-text { font-size: 18px; color: #c9b88a; font-family: ui-monospace, Consolas, monospace; text-shadow: 0 2px 8px #000; min-height: 24px;
+  opacity: 0; transition: opacity .5s; }
+#rollShow.landed .rs-text { opacity: 1; }
+#rollShow .rs-burst { position: absolute; inset: -30%; border-radius: 50%; opacity: 0; pointer-events: none; }
+#rollShow.nat20 { color: #4ade80; }
+#rollShow.nat20 .rs-num { color: #d9ffe6; }
+#rollShow.nat20 .rs-burst { background: radial-gradient(circle, rgba(74,222,128,.55) 0%, rgba(242,204,96,.25) 35%, rgba(0,0,0,0) 65%); animation: rsBurst 1.1s ease-out both; }
+#rollShow.nat20.landed .rs-die { filter: drop-shadow(0 0 34px rgba(74,222,128,.8)) drop-shadow(0 14px 22px rgba(0,0,0,.75)); }
+#rollShow.nat1 { color: #f85149; }
+#rollShow.nat1 .rs-num { color: #ffd8d5; }
+#rollShow.nat1.landed .rs-die { animation: rsShake .5s linear both; filter: drop-shadow(0 0 30px rgba(248,81,73,.75)) drop-shadow(0 14px 22px rgba(0,0,0,.75)); }
+@keyframes rsThrow {
+  0%   { transform: translate(-62vw, 46vh) rotate3d(1, .6, .3, 0deg) scale(.35); opacity: 0; }
+  8%   { opacity: 1; }
+  52%  { transform: translate(-4vw, -9vh) rotate3d(1, .6, .3, 840deg) scale(1.28); }
+  68%  { transform: translate(0, 5vh) rotate3d(1, .6, .3, 1100deg) scale(.92); }
+  82%  { transform: translate(0, -3vh) rotate3d(1, .6, .3, 1330deg) scale(1.06); }
+  100% { transform: translate(0, 0) rotate3d(1, .6, .3, 1440deg) scale(1); }
+}
+@keyframes rsPop { 0% { transform: scale(.4); } 100% { transform: scale(1); } }
+@keyframes rsFlicker { 0% { transform: scale(.8); } 100% { transform: scale(.9); } }
+@keyframes rsBurst { 0% { transform: scale(.3); opacity: 0; } 25% { opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+@keyframes rsShake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-10px) rotate(-4deg); } 40% { transform: translateX(9px) rotate(3deg); }
+  60% { transform: translateX(-6px) rotate(-2deg); } 80% { transform: translateX(4px); } }
+
+/* очередь ходов у игроков */
+#queueShow { position: fixed; left: 14px; top: 14px; z-index: 40; min-width: 170px; max-width: 260px; display: none; flex-direction: column; gap: 5px;
+  background: rgba(13,17,23,.82); border: 1px solid #3a3f46; border-radius: 12px; padding: 8px 10px; font-family: Georgia, serif; color: #f3e6c4; }
+#queueShow.on { display: flex; }
+#queueShow .q-h { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: #c9b88a; }
+#queueShow .q-i { display: flex; align-items: center; gap: 8px; padding: 3px 6px 3px 4px; border-radius: 22px; border: 2px solid transparent; opacity: .8; }
+#queueShow .q-i.turn { border-color: #f2cc60; background: rgba(242,204,96,.14); opacity: 1; }
+#queueShow .q-av { width: 30px; height: 30px; border-radius: 50%; flex: none; background-size: cover; background-position: center;
+  display: flex; align-items: center; justify-content: center; font: 700 12px system-ui, sans-serif; color: #fff; border: 2px solid #555; }
+#queueShow .k-pc .q-av { border-color: #3fb950; } #queueShow .k-ally .q-av { border-color: #58a6ff; }
+#queueShow .k-enemy .q-av { border-color: #f85149; } #queueShow .k-neutral .q-av { border-color: #d29922; }
+#queueShow .q-nm { font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

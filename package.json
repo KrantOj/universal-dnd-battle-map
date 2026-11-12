@@ -9,6 +9,9 @@
   "scripts": {
     "start": "electron .",
     "test": "node --test tests/",
+    "build:locales": "node scripts/build-locales.js",
+    "smoke": "electron . --smoke",
+    "smoke:wizard": "electron . --smoke-wizard",
     "dist": "electron-builder --win --publish never"
   },
   "devDependencies": {

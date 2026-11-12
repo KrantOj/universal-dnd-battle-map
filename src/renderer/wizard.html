@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' app: userfile: data: blob:; img-src 'self' app: userfile: data: blob:; media-src app: userfile: blob:">
+<title>Universal DnD Battle map</title>
+<link rel="stylesheet" href="css/vtt.css">
+<link rel="stylesheet" href="css/ui.css">
+<link rel="stylesheet" href="css/wizard.css">
+</head>
+<body class="wizard">
+<div id="wz">
+  <div class="card wz-card">
+    <div class="wz-head">
+      <h2 id="wzTitle" data-i18n="wizard.wzTitle"></h2>
+      <div id="wzSteps" class="muted small"></div>
+    </div>
+    <div id="wzBody"></div>
+    <div id="wzMsg" class="err"></div>
+    <div class="btnrow wz-nav">
+      <button id="wzCancel" hidden data-i18n="common.cancel"></button>
+      <button id="wzBack" data-i18n="wizard.wzBack"></button>
+      <span class="wz-spacer"></span>
+      <button id="wzSkip" data-i18n="wizard.wzSkip"></button>
+      <button id="wzNext" class="primary" data-i18n="wizard.wzNext"></button>
+    </div>
+  </div>
+</div>
+<script src="locales/ru.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/cfgui.js"></script>
+<script src="js/wizard.js"></script>
+</body>
+</html>

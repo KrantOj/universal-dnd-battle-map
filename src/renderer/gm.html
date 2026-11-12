@@ -2,15 +2,311 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' app: userfile: data: blob:; img-src 'self' app: userfile: data: blob:; media-src app: userfile: blob:">
 <title>Universal DnD Battle map</title>
-<link rel="stylesheet" href="gm.css">
+<link rel="stylesheet" href="css/vtt.css">
+<link rel="stylesheet" href="css/ui.css">
+<link rel="stylesheet" href="css/showcase.css">
+<link rel="stylesheet" href="css/show-player.css">
+<link rel="stylesheet" href="css/combat.css">
+<link rel="stylesheet" href="css/wizard.css">
 </head>
 <body>
-<main>
-  <h1>Universal DnD Battle map</h1>
-  <div id="ver"></div>
-</main>
-<script src="gm.js"></script>
+<div id="app">
+  <header id="toolbar" class="gm-only">
+    <div class="grp">
+      <button id="btnMaps" data-i18n-title="toolbar.maps.title" data-i18n="toolbar.maps"></button>
+      <button id="btnImportMapTb" data-i18n-title="toolbar.importMapTb.title" data-i18n="toolbar.importMapTb"></button>
+      <button id="btnPlayer" data-i18n-title="toolbar.player.title" data-i18n="toolbar.player"></button>
+      <button id="btnShow" data-i18n-title="toolbar.show.title" data-i18n="toolbar.show"></button>
+      <span id="showChip" class="show-chip" hidden><span class="sc-t"></span><button id="showChipX" data-i18n-title="toolbar.showChipX.title">✕</button></span>
+    </div>
+    <div class="grp" id="tools">
+      <button data-tool="select" class="tool active" data-i18n-title="toolbar.tool.select.title" data-i18n="toolbar.tool.select"></button>
+      <button data-tool="reveal" class="tool" data-i18n-title="toolbar.tool.reveal.title" data-i18n="toolbar.tool.reveal"></button>
+      <button data-tool="hide" class="tool" data-i18n-title="toolbar.tool.hide.title" data-i18n="toolbar.tool.hide"></button>
+      <button data-tool="rect" class="tool" data-i18n-title="toolbar.tool.rect.title" data-i18n="toolbar.tool.rect"></button>
+      <button data-tool="doors" class="tool" data-i18n-title="toolbar.tool.doors.title" data-i18n="toolbar.tool.doors"></button>
+      <button data-tool="ping" class="tool" data-i18n-title="toolbar.tool.ping.title" data-i18n="toolbar.tool.ping"></button>
+    </div>
+    <div class="grp" id="brushes" data-i18n-title="toolbar.brushes.title">
+      <span class="lbl" data-i18n="toolbar.brush"></span>
+      <button data-brush="1" class="brush active">1</button>
+      <button data-brush="3" class="brush">3</button>
+      <button data-brush="5" class="brush">5</button>
+    </div>
+    <div class="grp">
+      <button id="btnRevealAll" data-i18n="toolbar.revealAll"></button>
+      <button id="btnHideAll" data-i18n="toolbar.hideAll"></button>
+      <button id="btnRevealPlayers" data-i18n-title="toolbar.revealPlayers.title" data-i18n="toolbar.revealPlayers"></button>
+    </div>
+    <div class="grp">
+      <span class="lbl"><span data-i18n="toolbar.round"></span> <b id="roundNum">1</b></span>
+      <button id="btnNewRound" data-i18n-title="toolbar.newRound.title" data-i18n="toolbar.newRound"></button>
+      <button id="btnResetRounds" data-i18n-title="toolbar.resetRounds.title" data-i18n="toolbar.resetRounds"></button>
+      <button id="btnClearScene" class="danger" data-i18n-title="toolbar.clearScene.title" data-i18n="toolbar.clearScene"></button>
+    </div>
+    <div class="grp" id="viewGrp">
+      <span class="lbl" data-i18n="toolbar.viewLabel"></span>
+      <button data-pview="fit-map" class="pview active" data-i18n="toolbar.pview.fit-map"></button>
+      <button data-pview="fit-revealed" class="pview" data-i18n="toolbar.pview.fit-revealed"></button>
+      <button data-pview="gm" class="pview" data-i18n="toolbar.pview.gm"></button>
+      <button id="btnSendView" data-i18n-title="toolbar.sendView.title" data-i18n="toolbar.sendView"></button>
+    </div>
+    <div class="grp right">
+      <button id="btnSettings" data-i18n-title="toolbar.settings.title">⚙</button>
+      <button id="btnHelp" data-i18n-title="toolbar.help.title">?</button>
+      <button id="btnPanel" data-i18n-title="toolbar.panel.title">▤</button>
+    </div>
+  </header>
+
+  <main id="stage">
+    <canvas id="canvas"></canvas>
+    <div id="dropHint" data-i18n-html="gm.dropHint"></div>
+  </main>
+
+  <aside id="panel" class="gm-only">
+    <section id="combatSec">
+      <h3><span data-i18n="combat.title"></span> <span id="cbState" class="muted"></span></h3>
+      <div class="btnrow tight">
+        <button id="cbStart" class="primary" data-i18n-title="combat.cbStart.title" data-i18n="combat.cbStart"></button>
+        <button id="cbPrev" hidden data-i18n-title="combat.cbPrev.title">◀</button>
+        <button id="cbNext" class="primary" hidden data-i18n-title="combat.cbNext.title" data-i18n="combat.cbNext"></button>
+        <button id="cbEnd" hidden data-i18n-title="combat.cbEnd.title" data-i18n="combat.cbEnd"></button>
+      </div>
+      <div class="btnrow tight">
+        <button id="cbSave" data-i18n-title="combat.cbSave.title" data-i18n="combat.cbSave"></button>
+      </div>
+      <label class="row"><span data-i18n="combat.src"></span> <select id="cbSrc" data-i18n-title="combat.cbSrc.title"><option value="auto" data-i18n="combat.cbSrc.opt.auto"></option></select></label>
+      <div class="btnrow tight">
+        <button id="cbRoll" data-i18n-title="combat.cbRoll.title" data-i18n="combat.cbRoll"></button>
+        <button id="cbSort" data-i18n-title="combat.cbSort.title" data-i18n="combat.cbSort"></button>
+        <button id="cbClear" data-i18n-title="combat.cbClear.title" data-i18n="common.reset"></button>
+      </div>
+      <label class="row chk"><input type="checkbox" id="cbQueue"> <span data-i18n="combat.queue"></span></label>
+      <div id="cbTracker" class="list"></div>
+    </section>
+    <section id="diceSec">
+      <h3 data-i18n="dice.title"></h3>
+      <div class="dice-btns" id="diceBtns" data-i18n-title="dice.diceBtns.title"></div>
+      <div class="dice-row">
+        <button id="diceAdv" data-i18n-title="dice.diceAdv.title" data-i18n="dice.diceAdv"></button>
+        <button id="diceDis" data-i18n-title="dice.diceDis.title" data-i18n="dice.diceDis"></button>
+        <button id="diceMinus" data-i18n-title="dice.diceMinus.title">−1</button>
+        <button id="dicePlus" data-i18n-title="dice.dicePlus.title">+1</button>
+      </div>
+      <div class="dice-row">
+        <input id="diceExpr" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="dice.diceExpr.placeholder">
+        <button id="diceReset" data-i18n-title="dice.diceReset.title">✕</button>
+        <button id="diceGo" class="primary" data-i18n="dice.diceGo"></button>
+      </div>
+      <div class="dice-row">
+        <label class="chk"><input type="checkbox" id="diceShow"> <span data-i18n="dice.show"></span></label>
+        <button id="diceClear" data-i18n-title="dice.diceClear.title" data-i18n="common.clear"></button>
+      </div>
+      <div id="diceLog"></div>
+    </section>
+    <section id="cnSec">
+      <h3 data-i18n="counters.title"></h3>
+      <div id="cnList" class="list"></div>
+      <div class="cn-form">
+        <input id="cnName" type="text" maxlength="40" autocomplete="off" data-i18n-placeholder="counters.cnName.placeholder">
+        <div class="cn-row">
+          <input id="cnVal" type="number" value="10" min="0" data-i18n-title="counters.cnVal.title">
+          <select id="cnTick" data-i18n-title="counters.cnTick.title">
+            <option value="0" data-i18n="counters.cnTick.opt.0"></option><option value="-1" data-i18n="counters.cnTick.opt.-1"></option><option value="1" data-i18n="counters.cnTick.opt.1"></option>
+          </select>
+        </div>
+        <div class="cn-row">
+          <select id="cnTok" data-i18n-title="counters.cnTok.title"><option value="" data-i18n="counters.cnTok.none"></option></select>
+          <button id="cnAdd" class="primary" data-i18n="counters.cnAdd"></button>
+        </div>
+      </div>
+    </section>
+    <section>
+      <h3><span data-i18n="panel.tokensTitle"></span> <span id="tokCount" class="muted"></span></h3>
+      <div id="tokList" class="list"></div>
+      <button id="btnNewToken" class="wide primary" data-i18n="panel.newToken"></button>
+    </section>
+    <section>
+      <h3 data-i18n="panel.libTitle"></h3>
+      <div class="btnrow tight">
+        <button id="btnPlaceParty" data-i18n-title="panel.placeParty.title" data-i18n="panel.placeParty"></button>
+        <button id="btnLibExport" data-i18n="panel.libExport"></button>
+        <button id="btnLibImport" data-i18n="panel.libImport"></button>
+      </div>
+      <input type="file" id="fileLib" accept=".json,application/json" hidden>
+      <input id="libSearch" type="search" class="wide" data-i18n-placeholder="panel.libSearch.placeholder">
+      <div id="libList" class="list"></div>
+      <div class="muted small" id="libEmpty" data-i18n="panel.libEmpty"></div>
+    </section>
+    <section>
+      <h3 data-i18n="panel.settingsTitle"></h3>
+      <label class="row"><span data-i18n="panel.diag"></span>
+        <select id="setDiag"><option value="5" data-i18n="panel.setDiag.opt.5"></option><option value="5-10-5">5-10-5</option></select>
+      </label>
+      <label class="row chk"><input type="checkbox" id="setAuto"> <span data-i18n="panel.auto"></span></label>
+      <label class="row chk"><input type="checkbox" id="setGridGM"> <span data-i18n="panel.gridGm"></span></label>
+      <label class="row chk"><input type="checkbox" id="setGridPl"> <span data-i18n="panel.gridPl"></span></label>
+      <label class="row chk"><input type="checkbox" id="setLabGM"> <span data-i18n="panel.labGm"></span></label>
+      <label class="row chk"><input type="checkbox" id="setLabPl"> <span data-i18n="panel.labPl"></span></label>
+      <label class="row chk"><input type="checkbox" id="setRuler"> <span data-i18n="panel.ruler"></span></label>
+      <div class="btnrow">
+        <button id="btnExport" data-i18n="panel.export"></button>
+        <button id="btnImport" data-i18n="panel.import"></button>
+      </div>
+      <input type="file" id="fileScene" accept=".json,application/json" hidden>
+    </section>
+  </aside>
+
+  <div id="showDrawer" class="gm-only" hidden>
+    <div class="sd-head">
+      <div class="sd-tabs" id="sdTabs"></div>
+      <div class="sd-tools">
+        <input id="sdSearch" type="search" autocomplete="off" data-i18n-placeholder="show.sdSearch.placeholder">
+        <label class="sd-cap" data-i18n-title="show.caption.title"><input type="checkbox" id="sdCaption"> <span data-i18n="show.caption"></span></label>
+        <button id="sdRescan" data-i18n-title="show.sdRescan.title">⟳</button>
+        <button id="sdClose" data-i18n-title="show.sdClose.title">✕</button>
+      </div>
+    </div>
+    <div class="sd-body" id="sdBody"></div>
+  </div>
+
+  <footer id="status" class="gm-only"><span id="stCell">—</span><span id="stDrag"></span><span id="stMsg"></span></footer>
+</div>
+
+<div id="splash" data-i18n="common.splash"></div>
+
+<!-- выбор карты -->
+<div id="picker" class="overlay gm-only" hidden>
+  <div class="card">
+    <h2 data-i18n="picker.title"></h2>
+    <div class="btnrow">
+      <button id="btnPickDir" class="primary" data-i18n="picker.pickDir"></button>
+      <button id="btnImportMap" data-i18n="picker.importMap"></button>
+      <button id="btnPickShow" data-i18n-title="picker.pickShow.title" data-i18n="picker.pickShow"></button>
+    </div>
+    <div id="dirName" class="muted small"></div>
+    <div id="mapList" class="list"></div>
+    <div class="muted small" data-i18n-html="picker.dropNote"></div>
+    <div id="pickerMsg" class="err"></div>
+    <div class="btnrow end"><button id="btnPickerClose" data-i18n="common.close"></button></div>
+  </div>
+</div>
+
+<!-- настройки кампании -->
+<div id="settingsDlg" class="overlay gm-only" hidden>
+  <div class="card">
+    <h2 data-i18n="settings.title"></h2>
+    <div id="setBody"></div>
+    <div id="setMsg" class="muted small"></div>
+    <div class="btnrow end">
+      <button id="btnWizardAgain" data-i18n-title="settings.wizardAgain.title" data-i18n="settings.wizardAgain"></button>
+      <button id="btnSettingsClose" class="primary" data-i18n="common.close"></button>
+    </div>
+  </div>
+</div>
+
+<!-- диалог токена -->
+<datalist id="catList"></datalist>
+<div id="tokenDlg" class="overlay gm-only" hidden>
+  <form class="card" id="tokForm" autocomplete="off">
+    <h2 id="tokTitle" data-i18n="tokdlg.titleNew"></h2>
+    <div class="grid2">
+      <label><span data-i18n="tokdlg.name"></span><input id="tfName" required maxlength="40"></label>
+      <label><span data-i18n="tokdlg.label"></span><input id="tfLabel" maxlength="3"></label>
+      <label><span data-i18n="tokdlg.kind"></span>
+        <select id="tfKind">
+          <option value="pc" data-i18n="token.kind.pc"></option><option value="ally" data-i18n="token.kind.ally"></option>
+          <option value="enemy" data-i18n="token.kind.enemy"></option><option value="neutral" data-i18n="token.kind.neutral"></option>
+        </select>
+      </label>
+      <label><span data-i18n="tokdlg.color"></span><input id="tfColor" type="color" value="#238636"></label>
+      <label><span data-i18n="tokdlg.size"></span>
+        <select id="tfSize">
+          <option value="1" data-i18n="tokdlg.tfSize.opt.1"></option><option value="2" data-i18n="tokdlg.tfSize.opt.2"></option>
+          <option value="3" data-i18n="tokdlg.tfSize.opt.3"></option><option value="4" data-i18n="tokdlg.tfSize.opt.4"></option>
+        </select>
+      </label>
+      <label><span data-i18n="tokdlg.speed"></span><input id="tfSpeed" type="number" min="0" step="5" value="30"></label>
+      <label><span data-i18n="tokdlg.vision"></span><input id="tfVision" type="number" min="0" step="5" value="60"></label>
+      <label><span data-i18n="tokdlg.maxHp"></span><input id="tfMaxHp" type="number" min="0" step="1" data-i18n-placeholder="tokdlg.tfMaxHp.placeholder"></label>
+      <label><span data-i18n="tokdlg.ac"></span><input id="tfAc" type="number" min="0" step="1" data-i18n-placeholder="tokdlg.tfAc.placeholder"></label>
+      <label><span data-i18n="tokdlg.team"></span><select id="tfTeam"><option value="0" data-i18n="tokdlg.tfTeam.opt.0"></option><option value="1" data-i18n="tokdlg.tfTeam.opt.1"></option><option value="2" data-i18n="tokdlg.tfTeam.opt.2"></option><option value="3" data-i18n="tokdlg.tfTeam.opt.3"></option><option value="4" data-i18n="tokdlg.tfTeam.opt.4"></option></select></label>
+      <label><span data-i18n="tokdlg.initMod"></span><input id="tfInitMod" type="number" step="1" value="0"></label>
+      <label><span data-i18n="tokdlg.image"></span><input id="tfImage" type="file" accept="image/*"></label>
+      <label id="tfCatRow"><span data-i18n="tokdlg.category"></span><input id="tfCat" list="catList" maxlength="40" data-i18n-placeholder="tokdlg.tfCat.placeholder"></label>
+    </div>
+    <div class="imgrow"><canvas id="tfPreview" width="64" height="64"></canvas><button type="button" id="tfImgClear" data-i18n="tokdlg.imgClear"></button></div>
+    <label class="row chk"><input type="checkbox" id="tfHidden"> <span data-i18n="tokdlg.hidden"></span></label>
+    <label class="row chk" id="tfLibRow"><input type="checkbox" id="tfLib"> <span data-i18n="tokdlg.toLibrary"></span></label>
+    <div class="btnrow end">
+      <button type="button" id="tfCancel" data-i18n="common.cancel"></button>
+      <button type="submit" class="primary" id="tfOk" data-i18n="tokdlg.ok.create"></button>
+    </div>
+  </form>
+</div>
+
+<div id="ctxMenu" hidden></div>
+
+<div id="help" class="overlay gm-only" hidden>
+  <div class="card">
+    <h2 data-i18n="help.title"></h2>
+    <table class="keys">
+      <tr><td>V</td><td data-i18n="help.row01.desc"></td></tr>
+      <tr><td>R</td><td data-i18n="help.row02.desc"></td></tr>
+      <tr><td>H</td><td data-i18n="help.row03.desc"></td></tr>
+      <tr><td>Shift+R</td><td data-i18n="help.row04.desc"></td></tr>
+      <tr><td>D</td><td data-i18n="help.row05.desc"></td></tr>
+      <tr><td>1 / 3 / 5</td><td data-i18n="help.row06.desc"></td></tr>
+      <tr><td data-i18n="help.row07.key"></td><td data-i18n="help.row07.desc"></td></tr>
+      <tr><td data-i18n="help.row08.key"></td><td data-i18n="help.row08.desc"></td></tr>
+      <tr><td data-i18n="help.row09.key"></td><td data-i18n="help.row09.desc"></td></tr>
+      <tr><td>Ctrl+Z</td><td data-i18n="help.row10.desc"></td></tr>
+      <tr><td>Delete</td><td data-i18n="help.row11.desc"></td></tr>
+      <tr><td data-i18n="help.row12.key"></td><td data-i18n="help.row12.desc"></td></tr>
+      <tr><td data-i18n="help.row13.key"></td><td data-i18n="help.row13.desc"></td></tr>
+      <tr><td data-i18n="help.row14.key"></td><td data-i18n="help.row14.desc"></td></tr>
+      <tr><td data-i18n="help.row15.key"></td><td data-i18n="help.row15.desc"></td></tr>
+      <tr><td data-i18n="help.row16.key"></td><td data-i18n="help.row16.desc"></td></tr>
+      <tr><td data-i18n="help.row17.key"></td><td data-i18n="help.row17.desc"></td></tr>
+      <tr><td data-i18n="help.row18.key"></td><td data-i18n="help.row18.desc"></td></tr>
+      <tr><td data-i18n="help.row19.key"></td><td data-i18n="help.row19.desc"></td></tr>
+      <tr><td data-i18n="help.row20.key"></td><td data-i18n="help.row20.desc"></td></tr>
+      <tr><td>B</td><td data-i18n="help.row21.desc"></td></tr>
+      <tr><td>N</td><td data-i18n="help.row22.desc"></td></tr>
+      <tr><td data-i18n="help.row23.key"></td><td data-i18n="help.row23.desc"></td></tr>
+      <tr><td data-i18n="help.row24.key"></td><td data-i18n="help.row24.desc"></td></tr>
+      <tr><td data-i18n="help.row25.key"></td><td data-i18n="help.row25.desc"></td></tr>
+      <tr><td>0</td><td data-i18n="help.row26.desc"></td></tr>
+      <tr><td>Esc</td><td data-i18n="help.row27.desc"></td></tr>
+      <tr><td>?</td><td data-i18n="help.row28.desc"></td></tr>
+    </table>
+    <div class="muted small" data-i18n="help.note"></div>
+    <div class="btnrow end"><button id="btnHelpClose" data-i18n="common.close"></button></div>
+  </div>
+</div>
+
+<div id="toast" hidden></div>
+
+<script src="locales/ru.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/geometry.js"></script>
+<script src="js/movement.js"></script>
+<script src="js/dice.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/store.js"></script>
+<script src="js/tokens-draw.js"></script>
+<script src="js/render.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/media.js"></script>
+<script src="js/showcase.js"></script>
+<script src="js/battlelog.js"></script>
+<script src="js/combat.js"></script>
+<script src="js/cfgui.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/gm.js"></script>
+<script src="js/boot-gm.js"></script>
 </body>
 </html>

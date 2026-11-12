@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' app: userfile: data: blob:; img-src 'self' app: userfile: data: blob:; media-src app: userfile: blob:">
+<title data-i18n="player.title"></title>
+<link rel="stylesheet" href="css/vtt.css">
+<link rel="stylesheet" href="css/ui.css">
+<link rel="stylesheet" href="css/showcase.css">
+<link rel="stylesheet" href="css/show-player.css">
+<link rel="stylesheet" href="css/combat.css">
+</head>
+<body class="player">
+<div id="app">
+  <main id="stage">
+    <canvas id="canvas"></canvas>
+  </main>
+</div>
+
+<div id="splash" data-i18n="common.splash"></div>
+
+<script src="locales/ru.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/geometry.js"></script>
+<script src="js/movement.js"></script>
+<script src="js/dice.js"></script>
+<script src="js/tokens-draw.js"></script>
+<script src="js/render.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/player.js"></script>
+<script src="js/boot-player.js"></script>
+</body>
+</html>
