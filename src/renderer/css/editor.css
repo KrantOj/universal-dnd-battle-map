@@ -23,3 +23,4 @@
 .ed-maplist { max-height: 40vh; overflow-y: auto; margin: 10px 0; }
 .ed-maplist button { text-align: left; padding: 8px 10px; }
 #edBar button.danger, #edSide button.danger { color: #ff7b72; border-color: #8a2f2c; }
+#eVal { width: 90px; }

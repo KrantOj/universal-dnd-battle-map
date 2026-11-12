@@ -81,6 +81,7 @@ function register() {
     return r.canceled || !r.filePaths.length ? null : r.filePaths[0];
   });
   h('dialog:pickFiles', async (e, o = {}) => {
+    if (smoke.enabled && smoke.fileQueue.length) return [smoke.fileQueue.shift()];
     const r = await dialog.showOpenDialog(parentOf(e), { title: o.title, filters: o.filters, properties: o.multi ? ['openFile', 'multiSelections'] : ['openFile'] });
     return r.canceled ? [] : r.filePaths;
   });

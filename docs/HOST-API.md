@@ -76,6 +76,11 @@ host.windows.isPlayerOpen() -> bool
 host.windows.onPlayerState(cb(open:bool))   // (sync) returns unsubscribe
 host.windows.togglePlayerFullscreen()       // called from player window (F / dblclick)
 
+host.editor.open({mapRel?, newFromImage?})   // окно редактора карт (editor.html): открыть/сфокусировать; размер/положение запоминаются (window-state.json, ключ editor)
+host.editor.takeRequest() -> req|null / host.editor.onRequest(cb(req))   // запрос на открытие: редактор забирает его при загрузке, дальше получает событием
+host.editor.openInGm(rel)   // «Проверить в бою»: окно мастера выходит вперёд и открывает карту maps/<rel> (host.editor.onOpenMap(cb(rel)) — подписка окна мастера)
+host.editor.setDirty(bool) / onConfirmClose(cb) / forceClose()   // защита от закрытия с несохранёнными правками
+
 host.sync.send(msg)                         // gm -> player window, or player -> gm window; msg is structured-cloneable plain data (no Blob/File/Image)
 host.sync.onMessage(cb(msg))                // (sync) returns unsubscribe
 
