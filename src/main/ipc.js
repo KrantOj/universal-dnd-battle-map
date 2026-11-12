@@ -19,6 +19,8 @@ function parentOf(e) { return BrowserWindow.fromWebContents(e.sender) || undefin
 function takeSave(p) { if (!allowedSaves.delete(p)) throw new Error('PATH_NOT_ALLOWED'); }
 function labelOf(wc) {
   const g = windows.getGmWindow(), p = windows.getPlayerWindow();
+  const ed = windows.getEditorWindow();
+  if (ed && ed.webContents === wc) return 'editor';
   return g && !g.isDestroyed() && g.webContents === wc ? 'gm' : (p && !p.isDestroyed() && p.webContents === wc ? 'player' : 'window');
 }
 
@@ -106,6 +108,12 @@ function register() {
   h('scenes:save', (e, s) => scenes.save(s));
   h('scenes:list', () => scenes.list());
   h('scenes:remove', (e, id) => scenes.remove(id));
+
+  h('editor:open', (e, req) => windows.openEditor(req && typeof req === 'object' ? { mapRel: req.mapRel ? String(req.mapRel) : undefined, newFromImage: !!req.newFromImage } : null));
+  h('editor:takeRequest', () => windows.takeEditorRequest());
+  h('editor:openInGm', (e, rel) => windows.openInGm(rel));
+  h('editor:forceClose', () => windows.forceCloseEditor());
+  ipcMain.on('editor:dirty', (e, v) => windows.setEditorDirty(v));
 
   h('windows:openPlayer', () => windows.openPlayer());
   h('windows:closePlayer', () => windows.closePlayer());

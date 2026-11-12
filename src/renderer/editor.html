@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' app: userfile: data: blob:; img-src 'self' app: userfile: data: blob:">
+<title>Universal DnD Battle map — редактор</title>
+<link rel="stylesheet" href="css/vtt.css">
+<link rel="stylesheet" href="css/ui.css">
+<link rel="stylesheet" href="css/editor.css">
+</head>
+<body class="editor">
+<div id="ed">
+  <header id="edBar">
+    <div class="grp">
+      <button id="edNew" data-i18n-title="editor.bar.new.title" data-i18n="editor.bar.new"></button>
+      <button id="edOpen" data-i18n-title="editor.bar.open.title" data-i18n="editor.bar.open"></button>
+      <button id="edSave" class="primary" data-i18n-title="editor.bar.save.title" data-i18n="editor.bar.save"></button>
+      <button id="edBattle" data-i18n-title="editor.bar.battle.title" data-i18n="editor.bar.battle"></button>
+      <button id="edCheck" data-i18n-title="editor.bar.check.title" data-i18n="editor.bar.check"></button>
+    </div>
+    <div class="grp">
+      <button id="edUndo" data-i18n-title="editor.bar.undo.title">↶</button>
+      <button id="edRedo" data-i18n-title="editor.bar.redo.title">↷</button>
+      <button id="edFit" data-i18n-title="editor.bar.fit.title" data-i18n="editor.bar.fit"></button>
+    </div>
+    <div class="grp" id="edLayers">
+      <span class="lbl" data-i18n="editor.layers"></span>
+      <label class="chk"><input type="checkbox" data-layer="walls" checked><span data-i18n="editor.layer.walls"></span></label>
+      <label class="chk"><input type="checkbox" data-layer="terrain" checked><span data-i18n="editor.layer.terrain"></span></label>
+      <label class="chk"><input type="checkbox" data-layer="elev" checked><span data-i18n="editor.layer.elev"></span></label>
+      <label class="chk"><input type="checkbox" data-layer="grid" checked><span data-i18n="editor.layer.grid"></span></label>
+    </div>
+    <div class="grp right"><span id="edName" class="muted"></span></div>
+  </header>
+
+  <nav id="edTools">
+    <button data-tool="grid" class="etool" data-i18n-title="editor.tool.grid.title" data-i18n="editor.tool.grid"></button>
+    <button data-tool="select" class="etool" data-i18n-title="editor.tool.select.title" data-i18n="editor.tool.select"></button>
+    <button data-tool="wall" class="etool" data-i18n-title="editor.tool.wall.title" data-i18n="editor.tool.wall"></button>
+    <button data-tool="door" class="etool" data-i18n-title="editor.tool.door.title" data-i18n="editor.tool.door"></button>
+    <button data-tool="terrain" class="etool" data-i18n-title="editor.tool.terrain.title" data-i18n="editor.tool.terrain"></button>
+    <button data-tool="elev" class="etool" data-i18n-title="editor.tool.elev.title" data-i18n="editor.tool.elev"></button>
+  </nav>
+
+  <main id="edStage">
+    <canvas id="edCanvas"></canvas>
+    <div id="edEmpty" class="ed-empty" data-i18n="editor.empty"></div>
+  </main>
+
+  <aside id="edSide">
+    <section class="ed-sec" id="pMap">
+      <h3 data-i18n="editor.sec.map"></h3>
+      <label class="fld"><span data-i18n="editor.field.title"></span><input id="fTitle" type="text"></label>
+    </section>
+
+    <section class="ed-sec" id="pGrid" data-for="grid">
+      <h3 data-i18n="editor.sec.grid"></h3>
+      <div class="grid2">
+        <label><span data-i18n="editor.grid.ppg"></span><input id="gPpg" type="number" min="4" max="1000" step="1"></label>
+        <label><span data-i18n="editor.grid.feet"></span><input id="gFeet" type="number" min="1" max="100" step="1"></label>
+        <label><span data-i18n="editor.grid.offX"></span><input id="gOffX" type="number" step="1"></label>
+        <label><span data-i18n="editor.grid.offY"></span><input id="gOffY" type="number" step="1"></label>
+        <label><span data-i18n="editor.grid.cols"></span><input id="gCols" type="number" min="1" max="500" step="1"></label>
+        <label><span data-i18n="editor.grid.rows"></span><input id="gRows" type="number" min="1" max="500" step="1"></label>
+      </div>
+      <label class="chk"><input id="gAuto" type="checkbox" checked><span data-i18n="editor.grid.auto"></span></label>
+      <div class="muted small" id="gImg"></div>
+      <div class="btnrow">
+        <button id="gBox" data-i18n-title="editor.grid.box.title" data-i18n="editor.grid.box"></button>
+        <button id="gSpan" data-i18n-title="editor.grid.span.title" data-i18n="editor.grid.span"></button>
+      </div>
+      <div class="muted small" id="gHint" data-i18n="editor.grid.hint"></div>
+    </section>
+
+    <section class="ed-sec" id="pSelect" data-for="select">
+      <h3 data-i18n="editor.sec.select"></h3>
+      <div class="muted small" id="sInfo"></div>
+      <label class="chk" id="sOpenRow" hidden><input id="sOpen" type="checkbox"><span data-i18n="editor.door.open"></span></label>
+      <div class="btnrow">
+        <button id="sDel" class="danger" hidden data-i18n="editor.select.delete"></button>
+        <button id="sDoorWall" class="danger" hidden data-i18n="editor.door.toWall"></button>
+        <button id="sDoorGap" class="danger" hidden data-i18n="editor.door.toGap"></button>
+      </div>
+      <div class="muted small" data-i18n="editor.select.hint"></div>
+    </section>
+
+    <section class="ed-sec" id="pWall" data-for="wall">
+      <h3 data-i18n="editor.sec.wall"></h3>
+      <div class="muted small" data-i18n="editor.wall.hint"></div>
+      <div class="btnrow"><button id="wFinish" data-i18n="editor.wall.finish"></button><button id="wCancel" data-i18n="editor.wall.cancel"></button></div>
+    </section>
+
+    <section class="ed-sec" id="pDoor" data-for="door">
+      <h3 data-i18n="editor.sec.door"></h3>
+      <label class="chk"><input id="dOpen" type="checkbox"><span data-i18n="editor.door.openNew"></span></label>
+      <div class="muted small" data-i18n="editor.door.hint"></div>
+    </section>
+
+    <section class="ed-sec" id="pTerrain" data-for="terrain">
+      <h3 data-i18n="editor.sec.terrain"></h3>
+      <div class="kinds" id="tKinds"></div>
+    </section>
+
+    <section class="ed-sec" id="pElev" data-for="elev">
+      <h3 data-i18n="editor.sec.elev"></h3>
+      <div class="row"><label data-i18n="editor.elev.value"></label><input id="eVal" type="number" step="5" value="10" style="width:90px"></div>
+      <div class="row chk">
+        <label class="chk"><input type="radio" name="eMode" value="set" checked><span data-i18n="editor.elev.set"></span></label>
+        <label class="chk"><input type="radio" name="eMode" value="add"><span data-i18n="editor.elev.add"></span></label>
+      </div>
+    </section>
+
+    <section class="ed-sec" id="pShape" data-for="terrain elev">
+      <h3 data-i18n="editor.sec.shape"></h3>
+      <div class="btnrow tight" id="shapes">
+        <button data-shape="brush" class="shp active" data-i18n="editor.shape.brush"></button>
+        <button data-shape="rect" class="shp" data-i18n="editor.shape.rect"></button>
+        <button data-shape="fill" class="shp" data-i18n="editor.shape.fill"></button>
+      </div>
+      <div class="btnrow tight" id="sizes">
+        <span class="lbl" data-i18n="editor.brush.size"></span>
+        <button data-size="1" class="siz active">1</button><button data-size="3" class="siz">3</button><button data-size="5" class="siz">5</button>
+      </div>
+      <label class="chk"><input id="fWalls" type="checkbox" checked><span data-i18n="editor.fill.walls"></span></label>
+    </section>
+
+    <section class="ed-sec" id="pLegend">
+      <h3 data-i18n="editor.sec.legend"></h3>
+      <div id="legend" class="legend"></div>
+    </section>
+  </aside>
+
+  <footer id="edStatus"><span id="stCell"></span><span id="stTool"></span><span id="stZoom"></span><span id="stDirty" class="muted"></span></footer>
+</div>
+
+<div id="edStart" class="overlay" hidden>
+  <div class="card">
+    <h2 data-i18n="editor.start.title"></h2>
+    <div class="btnrow">
+      <button id="stNew" class="primary" data-i18n="editor.start.new"></button>
+    </div>
+    <div class="muted small" data-i18n="editor.start.listHint"></div>
+    <div id="stList" class="list ed-maplist"></div>
+    <div id="stMsg" class="err"></div>
+  </div>
+</div>
+<div id="toast" hidden></div>
+
+<script src="locales/ru.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/errlog.js"></script>
+<script src="js/geometry.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/store.js"></script>
+<script src="js/editor-model.js"></script>
+<script src="js/editor-view.js"></script>
+<script src="js/editor.js"></script>
+<script>VTT.editor.init();</script>
+</body>
+</html>

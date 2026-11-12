@@ -90,6 +90,16 @@ contextBridge.exposeInMainWorld('host', {
     onPlayerState: (cb) => sub('windows:playerState', cb),
     togglePlayerFullscreen: () => inv('windows:togglePlayerFullscreen'),
   },
+  editor: {
+    open: (req) => inv('editor:open', req),
+    takeRequest: () => inv('editor:takeRequest'),
+    onRequest: (cb) => sub('editor:request', cb),
+    openInGm: (rel) => inv('editor:openInGm', rel),
+    onOpenMap: (cb) => sub('editor:openMap', cb),
+    setDirty: (v) => { try { ipcRenderer.send('editor:dirty', !!v); } catch (_) { /* ignore */ } },
+    onConfirmClose: (cb) => sub('editor:confirmClose', cb),
+    forceClose: () => inv('editor:forceClose'),
+  },
   sync: {
     send: (msg) => ipcRenderer.send('sync:send', msg),
     onMessage: (cb) => sub('sync:message', cb),

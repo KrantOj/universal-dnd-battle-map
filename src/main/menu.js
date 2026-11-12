@@ -26,6 +26,8 @@ function build() {
       label: t('menu.file'),
       submenu: [
         { label: t('menu.file.importMap'), click: () => send('import-map') },
+        { label: t('menu.file.newMap'), click: () => windows.openEditor({ newFromImage: true }) },
+        { label: t('menu.file.editMap'), click: () => send('edit-current-map') },
         { type: 'separator' },
         { label: t('menu.file.campaigns'), click: () => send('campaigns') },
         { label: t('menu.file.settings'), click: () => send('settings') },

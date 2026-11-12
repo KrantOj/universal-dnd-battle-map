@@ -189,7 +189,11 @@
       var b = document.createElement('button');
       b.textContent = '🗺 ' + en.name + (en.name === S.lastMapName ? tr('picker.last') : '');
       b.onclick = function () { openEntry(en); };
-      list.appendChild(b);
+      var row = document.createElement('div'); row.className = 'maprow';
+      var eb = document.createElement('button'); eb.className = 'mapedit'; eb.textContent = '✏'; eb.title = tr('picker.edit.title');
+      eb.onclick = function () { editMap(en); };
+      row.appendChild(b); row.appendChild(eb);
+      list.appendChild(row);
     });
     return S.entries;
   }
@@ -1072,6 +1076,7 @@
     $('btnImportMapTb').onclick = importMapDialog;
     $('btnSettings').onclick = function () { VTT.settings.open(); };
 
+    $('btnEditor').onclick = function () { editMap(S.curEntry); };
     $('btnPlayer').onclick = function () {
       Promise.resolve(VTT.sync.openPlayerWindow()).catch(function (e) { toast(tr('gm.err.openPlayer', { msg: e && e.message || e }), 4000); });
     };
@@ -1297,6 +1302,18 @@
     else if (action === 'wizard') window.host.app.showWizard();
     else if (action === 'campaigns') VTT.campaignsUi.openManager();
     else if (action === 'report') VTT.reportUi.open();
+    else if (action === 'edit-current-map') editMap(S.curEntry);
+  }
+  // редактор карт: открыть выбранную карту (или просто окно редактора)
+  function editMap(en) {
+    window.host.editor.open(en ? { mapRel: en.rel } : null).catch(function (e) { toast(e && e.message || String(e), 4000); });
+  }
+  // «Проверить в бою» из редактора: карта с диска, сцена сохраняется
+  async function openMapFromEditor(rel) {
+    var entries = await refreshMaps(true);
+    var en = (entries || []).filter(function (x) { return x.rel === rel; })[0];
+    if (!en) return;
+    if (S.curEntry && S.curEntry.rel === rel && S.map) await reloadCurrent(); else await openEntry(en);
   }
 
   VTT.gm = {
@@ -1306,6 +1323,7 @@
       VTT.sync.initGm();
       bindUI(); bindDialog(); bindCanvas(); bindKeys();
       window.host.menu.onAction(onMenu);
+      window.host.editor.onOpenMap(openMapFromEditor);
       try { S.camp = await window.host.campaigns.current(); } catch (e) { S.camp = null; }
       if (!S.camp) { window.host.app.showWizard(); return; }
       window.host.campaigns.onChanged(onCampaign);
