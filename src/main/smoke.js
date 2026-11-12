@@ -8,7 +8,9 @@ const { app } = require('electron');
 const i18n = require('./i18n');
 
 const argv = process.argv;
-const enabled = argv.includes('--smoke') || argv.includes('--smoke-wizard');
+const onlyArg = argv.find((a) => a.indexOf('--smoke-only=') === 0);
+const only = onlyArg ? onlyArg.slice('--smoke-only='.length) : null;   // --smoke-only=editor: только сценарий редактора карт
+const enabled = argv.includes('--smoke') || argv.includes('--smoke-wizard') || !!only;
 const wizardOnly = argv.includes('--smoke-wizard');
 let tmp = null;
 
@@ -51,7 +53,7 @@ async function run(windows, campaigns) {
   const snap = async (name) => {
     shot++;
     const nn = String(shot).padStart(2, '0');
-    for (const [who, w] of [['gm', windows.getGmWindow()], ['player', windows.getPlayerWindow()]]) {
+    for (const [who, w] of [['gm', windows.getGmWindow()], ['player', windows.getPlayerWindow()], ['editor', windows.getEditorWindow && windows.getEditorWindow()]]) {
       if (!w || w.isDestroyed()) continue;
       try {
         const img = await w.webContents.capturePage();
@@ -107,6 +109,13 @@ async function run(windows, campaigns) {
     });
     await windows.createGmWindow();
 
+    if (only === 'editor') {
+      await step('init', async () => { await waitFor("!!(window.VTT && VTT.gm && document.querySelectorAll('#mapList button').length)", 15000); });
+      await require('./smoke-editor')({ windows, campaigns, tmp, appPath, ex, waitFor, step, sleep, smoke: module.exports });
+      clearTimeout(watchdog);
+      return finish(report.errors.length || report.consoleErrors.length ? 1 : 0);
+    }
+
     await step('init', async () => {
       await waitFor("!!(window.VTT && VTT.gm && document.querySelectorAll('#mapList button').length)", 15000);
     });
@@ -158,5 +167,6 @@ async function run(windows, campaigns) {
   finish(report.errors.length || report.consoleErrors.length ? 1 : 0);
 }
 
+const fileQueue = [];   // ответы для host.dialog.pickFiles в smoke
 const pickQueue = [];   // ответы для host.dialog.pickFolder в smoke
-module.exports = { enabled, wizardOnly, early, run, pickQueue };
+module.exports = { enabled, wizardOnly, only, early, run, pickQueue, fileQueue };

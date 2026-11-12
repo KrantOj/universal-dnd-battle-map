@@ -78,6 +78,9 @@ input[type=checkbox] { width: 16px; height: 16px; }
 .keys td:first-child { white-space: nowrap; font-family: ui-monospace, Consolas, monospace; color: var(--accent); width: 42%; }
 #mapList { margin: 10px 0; max-height: 40vh; overflow-y: auto; }
 #mapList button { text-align: left; padding: 8px 10px; }
+#mapList .maprow { display: flex; gap: 4px; }
+#mapList .maprow > button:first-child { flex: 1; }
+#mapList .maprow > .mapedit { text-align: center; padding: 8px 12px; }
 
 #ctxMenu { position: fixed; z-index: 100; background: var(--panel); border: 1px solid #484f58; border-radius: 8px; padding: 4px; min-width: 200px; box-shadow: 0 8px 24px rgba(0,0,0,.6); }
 #ctxMenu .it { padding: 6px 10px; border-radius: 5px; cursor: pointer; position: relative; display: flex; justify-content: space-between; gap: 14px; }

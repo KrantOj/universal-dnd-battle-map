@@ -4,6 +4,7 @@
 // удаление и перенос трогают ТОЛЬКО эти пути — всё остальное в папке чужое.
 //   scenes/<id>.scene.json   — сцены карт                      (main/scenes.js)
 //   library.tokens.json      — библиотека токенов              (renderer/js/store.js)
+//   editor-draft.json        — черновик редактора карт          (renderer/js/editor.js)
 //   kv.json                  — закрепления «Показа», незавершённый бой и пр. (main/kv.js)
 //   thumbs/<hash>.jpg        — кэш миниатюр «Показа»           (renderer/js/media.js); не экспортируется
 // Временные *.tmp рядом с ними (атомарная запись) считаются своими.
@@ -11,7 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const pu = require('./pathutil');
 
-const FILES = ['library.tokens.json', 'kv.json'];
+const FILES = ['library.tokens.json', 'kv.json', 'editor-draft.json'];
 const DIRS = [
   { name: 'scenes', test: (n) => /[.]scene[.]json([.][^/]*[.]tmp)?$/.test(n), cache: false },
   { name: 'thumbs', test: (n) => /\.(jpe?g|tmp)$/i.test(n), cache: true },

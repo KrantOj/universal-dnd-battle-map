@@ -11,6 +11,10 @@ const APP = 'app://local/';
 
 let gmWindow = null;
 let playerWindow = null;
+let editorWindow = null;
+let editorRequest = null;     // запрос на открытие (карта/новая из картинки), который окно редактора забирает при загрузке
+let editorDirty = false;
+let editorForceClose = false;
 
 const stateFile = () => path.join(app.getPath('userData'), 'window-state.json');
 
@@ -39,11 +43,12 @@ function intersectsDisplay(b) {
     return ix >= 100 && iy >= 100;
   });
 }
-function loadGmState() {
+function loadGmState(key) {
+  key = key || 'gm';
   const s = store.readJson(stateFile(), null);
-  const opts = { width: 1280, height: 800 };
-  if (!s || !s.gm) return { opts, maximized: false };
-  const g = s.gm;
+  const opts = { width: key === 'editor' ? 1360 : 1280, height: 860 };
+  if (!s || !s[key]) return { opts, maximized: false };
+  const g = s[key];
   if (Number.isFinite(g.width) && Number.isFinite(g.height)) {
     opts.width = Math.max(800, g.width); opts.height = Math.max(500, g.height);
   }
@@ -52,11 +57,12 @@ function loadGmState() {
   }
   return { opts, maximized: !!g.maximized };
 }
-function saveGmState(win) {
+function saveGmState(win, key) {
+  key = key || 'gm';
   if (!win || win.isDestroyed() || win.isMinimized() || win.isFullScreen()) return;
   const prev = store.readJson(stateFile(), {}) || {};
   const nb = win.getNormalBounds();
-  prev.gm = { x: nb.x, y: nb.y, width: nb.width, height: nb.height, maximized: win.isMaximized() };
+  prev[key] = { x: nb.x, y: nb.y, width: nb.width, height: nb.height, maximized: win.isMaximized() };
   try { store.writeJson(stateFile(), prev); } catch (_) {}
 }
 
@@ -92,6 +98,51 @@ function onGmLoaded() {
     const c = campaigns.current();
     if (c && c.playerWindow && c.playerWindow.auto && screen.getAllDisplays().length > 1 && !isPlayerOpen()) openPlayer();
   } catch (e) { logger.log.error('auto-open player failed', e); }
+}
+
+// ---------- Editor window ----------
+function isEditorOpen() { return !!(editorWindow && !editorWindow.isDestroyed()); }
+function getEditorWindow() { return isEditorOpen() ? editorWindow : null; }
+
+/** Открыть/сфокусировать редактор. req: {mapRel?, newFromImage?}. Окно запоминает размер и положение, как окно мастера. */
+function openEditor(req) {
+  editorRequest = req || null;
+  if (isEditorOpen()) {
+    if (editorWindow.isMinimized()) editorWindow.restore();
+    editorWindow.show(); editorWindow.focus();
+    if (editorRequest) { editorWindow.webContents.send('editor:request', editorRequest); editorRequest = null; }
+    return;
+  }
+  const st = loadGmState('editor');
+  const win = new BrowserWindow(Object.assign({
+    backgroundColor: '#111111', title: t('editor.title'), show: false, webPreferences: webPrefs(),
+  }, st.opts));
+  editorWindow = win;
+  editorDirty = false; editorForceClose = false;
+  win.setMenu(null);
+  secure(win, 'editor');
+  if (st.maximized) win.maximize();
+  win.show();
+  let tm = null;
+  const later = () => { clearTimeout(tm); tm = setTimeout(() => saveGmState(win, 'editor'), 500); };
+  win.on('resize', later);
+  win.on('move', later);
+  win.on('close', (e) => {
+    clearTimeout(tm); saveGmState(win, 'editor');
+    if (editorDirty && !editorForceClose) { e.preventDefault(); win.webContents.send('editor:confirmClose'); }
+  });
+  win.on('closed', () => { if (editorWindow === win) editorWindow = null; editorDirty = false; });
+  return load(win, 'editor.html');
+}
+function takeEditorRequest() { const r = editorRequest; editorRequest = null; return r; }
+function setEditorDirty(v) { editorDirty = !!v; }
+function forceCloseEditor() { editorForceClose = true; if (isEditorOpen()) editorWindow.close(); }
+/** «Проверить в бою»: окно мастера выходит вперёд и открывает карту. */
+function openInGm(rel) {
+  if (!gmWindow || gmWindow.isDestroyed()) return;
+  if (gmWindow.isMinimized()) gmWindow.restore();
+  gmWindow.show(); gmWindow.focus();
+  gmWindow.webContents.send('editor:openMap', String(rel));
 }
 
 function showWizard() { return load(gmWindow, 'wizard.html'); }
@@ -181,6 +232,6 @@ function broadcast(channel, ...args) {
 }
 
 module.exports = {
-  createGmWindow, getGmWindow, getPlayerWindow, showWizard, showGm,
+  createGmWindow, getGmWindow, openEditor, getEditorWindow, isEditorOpen, takeEditorRequest, setEditorDirty, forceCloseEditor, openInGm, getPlayerWindow, showWizard, showGm,
   openPlayer, closePlayer, isPlayerOpen, togglePlayerFullscreen, watchDisplays, relay, broadcast, emitPlayerState,
 };
