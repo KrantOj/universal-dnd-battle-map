@@ -38,6 +38,8 @@ contextBridge.exposeInMainWorld('host', {
     switch: (id) => inv('campaigns:switch', id),
     remove: (id, o) => inv('campaigns:remove', id, o),
     duplicate: (id) => inv('campaigns:duplicate', id),
+    inspectDataDir: (dir) => inv('campaigns:inspectDataDir', dir),
+    relocateData: (id, dir, o) => inv('campaigns:relocateData', id, dir, o),
     onChanged: (cb) => sub('campaigns:changed', cb),
   },
   archive: {

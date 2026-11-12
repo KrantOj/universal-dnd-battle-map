@@ -40,6 +40,14 @@ function register() {
   h('campaigns:switch', (e, id) => campaigns.switchTo(id));
   h('campaigns:remove', (e, id, o) => campaigns.remove(id, o));
   h('campaigns:duplicate', (e, id) => campaigns.duplicate(id));
+  h('campaigns:inspectDataDir', (e, dir) => require('./datafiles').inspect(String(dir || '')));
+  h('campaigns:relocateData', (e, id, dir, o) => {
+    const old = (campaigns.get(id) || {}).folders;
+    kv.flushAll();
+    const r = campaigns.relocateData(id, dir, !!(o && o.move));
+    if (old && old.data) kv.invalidate(old.data);
+    return r;
+  });
   campaigns.bus.on('data-removed', (d) => kv.invalidate(d));
 
   h('archive:estimate', (e, inc) => transfer.estimate(inc));

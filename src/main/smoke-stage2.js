@@ -70,10 +70,14 @@ module.exports = async function stage2(k) {
   const udbm = path.join(tmp, 'export', 'Smoke.udbm');
   await step('2-export-file', async () => {
     await ex(closeOverlays);
+    const cur = require('./campaigns').current();
+    fs.writeFileSync(path.join(cur.folders.data, 'foreign-note.md'), 'чужой файл в папке данных');
     const r = transfer.exportCurrent(udbm, { maps: true, media: true, battlelog: false });
     must(r.bytes > 0 && fs.existsSync(udbm), 'файл .udbm не создан');
     const zn = Object.keys(unzipSync(fs.readFileSync(udbm)));
     must(!zn.some((n) => /^maps\//.test(n) && !/\.map\.json$|\.png$|\.vtt\.json$/i.test(n)), 'в maps/ лишние файлы: ' + zn.join(','));
+    must(!zn.some((n) => /foreign-note/.test(n)), 'чужой файл из папки данных попал в архив');
+    fs.unlinkSync(path.join(cur.folders.data, 'foreign-note.md'));
     const m = archive.readManifest(udbm);
     must(m.format === 'udbm/1', 'формат manifest');
     must(!JSON.stringify(m).toLowerCase().includes(path.basename(tmp).toLowerCase()), 'в manifest остались абсолютные пути');

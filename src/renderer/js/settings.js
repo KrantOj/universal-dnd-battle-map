@@ -24,6 +24,23 @@
     }).catch(function (e) { msg(tr('common.saveFailed', { msg: e && e.message || e }), true); });
   }
 
+  // смена папки данных; если в старой есть данные приложения — предлагаем перенести (только их)
+  async function changeData(p, row) {
+    var from = camp.folders.data;
+    if (from && p.toLowerCase() === from.toLowerCase()) return;
+    var move = false;
+    try {
+      var info = from ? await window.host.campaigns.inspectDataDir(from) : null;
+      if (info && info.owned > 0) move = await VTT.ui.confirm({ title: tr('settings.move.title'), text: tr('settings.move.text', { from: from, to: p, n: info.owned }), ok: tr('settings.move.ok'), cancel: tr('settings.move.no') });
+      var c = await window.host.campaigns.relocateData(camp.id, p, { move: !!move });
+      if (c) camp = c;
+      msg(move ? tr('settings.move.done', { n: c && c._moved || 0 }) : tr('settings.saved'));
+    } catch (e) {
+      msg(tr('common.saveFailed', { msg: e && e.message || e }), true);
+      if (row && row.set) row.set(from);
+    }
+  }
+
   function build() {
     var body = $('setBody');
     body.textContent = '';
@@ -39,7 +56,7 @@
 
     // папки
     body.appendChild(cfg.el('h3', null, tr('settings.folders')));
-    var data = cfg.folderRow({ label: tr('settings.dataFolder'), value: camp.folders.data, pickTitle: tr('folder.data.pickTitle'), onChange: function (p) { if (p) update({ folders: { data: p } }); } });
+    var data = cfg.folderRow({ label: tr('settings.dataFolder'), value: camp.folders.data, pickTitle: tr('folder.data.pickTitle'), guardData: true, onChange: function (p) { if (p) changeData(p, data); } });
     body.appendChild(data.el);
     body.appendChild(cfg.el('div', 'cfg-note', tr('settings.dataNote')));
     body.appendChild(cfg.folderRow({ label: tr('settings.mapsFolder'), value: camp.folders.maps, empty: tr('common.notPicked'), pickTitle: tr('folder.maps.pickTitle'), clearable: true,

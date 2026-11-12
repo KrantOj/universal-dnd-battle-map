@@ -8,6 +8,7 @@ const store = require('./store');
 const settings = require('./settings');
 const { t } = require('./i18n');
 const { safeName } = require('./pathutil');
+const datafiles = require('./datafiles');
 
 const bus = new EventEmitter();
 const dir = () => path.join(app.getPath('userData'), 'campaigns');
@@ -110,7 +111,7 @@ function remove(id, opts) {
     const unsafe = path.parse(d).root === d || [app.getPath('home'), app.getPath('documents'), app.getPath('desktop')].some((p) => path.resolve(p) === d);
     if (!shared && !unsafe) {
       bus.emit('data-removed', d);
-      try { fs.rmSync(d, { recursive: true, force: true }); } catch (_) {}
+      try { datafiles.removeOwned(d); } catch (_) {}   // только файлы приложения; чужое не трогаем, папку — лишь если опустела
     }
   }
   if (wasCurrent) {
@@ -118,6 +119,23 @@ function remove(id, opts) {
     settings.set({ currentCampaign: rest.length ? rest[0].id : null });
     emitChanged();
   }
+}
+
+/** Смена папки данных кампании; move=true — перенести файлы приложения из старой папки. kv к этому моменту уже сброшен вызывающим. */
+function relocateData(id, newDir, move) {
+  const c = get(id);
+  if (!c) throw new Error('CAMPAIGN_NOT_FOUND');
+  if (!newDir || typeof newDir !== 'string') throw new Error('DATA_DIR_REQUIRED');
+  const from = c.folders && c.folders.data, to = path.resolve(newDir);
+  if (list().some((o) => o.id !== id && o.folders && o.folders.data && path.resolve(o.folders.data) === to)) throw new Error('DATA_DIR_IN_USE');
+  fs.mkdirSync(to, { recursive: true });
+  let moved = 0;
+  if (move && from) {
+    const shared = list().some((o) => o.id !== id && o.folders && o.folders.data && path.resolve(o.folders.data) === path.resolve(from));
+    if (!shared) moved = datafiles.moveOwned(from, to).moved;
+  }
+  const r = update(id, { folders: { data: to } });
+  return Object.assign({}, r, { _moved: moved });
 }
 
 /** Absolute base folder of a root in the current campaign, or null if not set. */
@@ -134,4 +152,4 @@ function rootPath(root, c) {
   return null;
 }
 
-module.exports = { bus, list, get, current, create, update, switchTo, remove, duplicate, emitChanged, rootPath, defaults, defaultDataDir };
+module.exports = { bus, list, get, current, create, update, switchTo, remove, duplicate, relocateData, emitChanged, rootPath, defaults, defaultDataDir };

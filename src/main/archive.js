@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const { Zip, ZipDeflate, Unzip, UnzipInflate } = require('fflate');
 const pu = require('./pathutil');
+const datafiles = require('./datafiles');
 const mediaFilter = require('../renderer/js/media-filter');
 
 const FORMAT = 'udbm/1';
@@ -82,7 +83,12 @@ function campaignFromManifest(manifest, targets, name) {
 function resolveEntry(name, mapping) {
   if (name === 'manifest.json' || name.endsWith('/')) return null;
   for (const m of mapping) {
-    if (name.startsWith(m.prefix)) return pu.resolveIn(m.dir, name.slice(m.prefix.length));
+    if (name.startsWith(m.prefix)) {
+      const rel = name.slice(m.prefix.length);
+      const abs = pu.resolveIn(m.dir, rel);   // сначала проверка обхода каталогов (BAD_PATH)
+      if (m.prefix === 'data/' && !datafiles.isOwnedRel(rel)) return null;   // в папку данных пишем только своё
+      return abs;
+    }
   }
   return null;
 }
@@ -140,13 +146,9 @@ function collect(c, include) {
   const f = c.folders || {};
   const out = [];
   const push = (prefix, part, list) => list.forEach((x) => out.push({ name: prefix + x.rel, abs: x.abs, size: x.size, part }));
-  const others = [];
-  if (f.maps) others.push(f.maps);
-  if (f.battlelog) others.push(f.battlelog);
-  (c.media || []).forEach((m) => { if (m.path) others.push(m.path); });
-  const inData = others.filter((o) => f.data && pu.isInside(f.data, o) && path.resolve(o) !== path.resolve(f.data));
   if (f.data) {
-    push('data/', 'data', walk(f.data, [path.join(f.data, 'thumbs')].concat(inData), (n) => !/\.tmp$/i.test(n) && n !== '.DS_Store' && n !== 'Thumbs.db', [], ''));
+    // только файлы приложения (datafiles.js): папка данных может быть чужой (хранилище заметок и т.п.); thumbs — кэш, не экспортируется
+    push('data/', 'data', datafiles.ownedFiles(f.data, { cache: false }).filter((x) => !/\.tmp$/i.test(x.rel)));
   }
   if (include && include.maps && f.maps) push('maps/', 'maps', collectMaps(f.maps));
   if (include && include.battlelog && f.battlelog) push('battlelog/', 'battlelog', walk(f.battlelog, [], (n) => /\.md$/i.test(n), [], ''));

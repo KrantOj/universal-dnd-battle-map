@@ -27,7 +27,9 @@ host.campaigns.current() -> Campaign|null
 host.campaigns.create(partial) -> Campaign  // partial ok (no folders.data -> default dir); fills defaults, makes it current, creates data folder
 host.campaigns.update(id, patch) -> Campaign // shallow-merge of folders/battlelog/playerWindow/prefs keys (folders:{maps:null} clears maps); media replaced as whole array
 host.campaigns.switch(id) -> Campaign
-host.campaigns.remove(id, {deleteData:false}) // deleteData also removes the data folder (refused silently if shared with another campaign or it is home/Documents/Desktop/drive root)
+host.campaigns.remove(id, {deleteData:false}) // deleteData removes ONLY app-owned files from the data folder (see inspectDataDir) and the folder itself only if left empty; foreign files are never touched (refused silently if shared with another campaign or it is home/Documents/Desktop/drive root)
+host.campaigns.inspectDataDir(dir) -> {exists, owned, foreign:[≤5 names], foreignCount}  // owned = files the app writes into a data folder (src/main/datafiles.js: scenes/*.scene.json, library.tokens.json, kv.json, thumbs/); foreign = anything else
+host.campaigns.relocateData(id, dir, {move:false}) -> Campaign  // sets folders.data; move:true copies app-owned files from the old folder (then deletes only those). Result has _moved. DATA_DIR_IN_USE if another campaign uses dir
 host.campaigns.duplicate(id) -> Campaign    // copy of settings: new id, name "<name> (копия)", NEW empty data folder; maps/media/battlelog folders are shared with the source; does NOT become current
 host.campaigns.onChanged(cb(campaign))      // (sync) returns unsubscribe; fired after create/update(current)/switch/remove(current). cb gets null when no campaign is left.
                                             // Renderer compares campaign.id with the previous one: different id => tear down the scene and reinitialise (store/media/showcase/blog/watch). A switch must be preceded by flushing pending saves (VTT.gm.flush()), because main switches immediately.
