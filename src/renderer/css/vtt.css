@@ -135,6 +135,12 @@ body.player #splash { display: flex; position: fixed; inset: 0; z-index: 10; ali
 .cu-info { flex: 1; min-width: 0; }
 .cu-btns { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
 .cu-size { margin: 10px 0; padding: 8px 10px; background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; font-size: 13px; }
+.cu-size { white-space: pre-line; }
+.cu-warn { margin: 8px 0; padding: 8px 10px; border: 1px solid #9e6a03; background: rgba(210,153,34,.12); border-radius: 6px; font-size: 13px; }
+.cu-busy { position: fixed; inset: 0; z-index: 100000; background: rgba(0,0,0,.65); display: flex; align-items: center; justify-content: center; cursor: wait; }
+.cu-busy-box { max-width: 460px; padding: 22px 26px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; text-align: center; white-space: pre-line; font-size: 14px; line-height: 1.5; }
+.cu-spin { width: 28px; height: 28px; margin: 0 auto 12px; border: 3px solid var(--line); border-top-color: #58a6ff; border-radius: 50%; animation: cu-rot 1s linear infinite; }
+@keyframes cu-rot { to { transform: rotate(360deg); } }
 .cu-sub { margin: 0 0 8px 24px; }
 .cu-msg { min-height: 1.2em; }
 .cu-msg.err { color: #f85149; }

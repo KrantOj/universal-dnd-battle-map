@@ -64,12 +64,16 @@ module.exports = async function stage2(k) {
     await waitFor("document.querySelectorAll('.cu-card .cfg-chk input').length === 3", 4000);
     await ex("document.querySelectorAll('.cu-card .cfg-chk input')[0].click()");   // включить карты — размер пересчитается
     await waitFor("/файлов/.test(document.querySelector('.cu-size').textContent)", 4000);
+    await waitFor("/не отвечать/.test(document.querySelector('.cu-warn').textContent) && /Примерное время: (меньше минуты|≈)/.test(document.querySelector('.cu-warn').textContent)", 4000);
+    await waitFor("/Примерное время/.test(document.querySelector('.cu-size').textContent)", 4000);
   }, 700);
   const udbm = path.join(tmp, 'export', 'Smoke.udbm');
   await step('2-export-file', async () => {
     await ex(closeOverlays);
     const r = transfer.exportCurrent(udbm, { maps: true, media: true, battlelog: false });
     must(r.bytes > 0 && fs.existsSync(udbm), 'файл .udbm не создан');
+    const zn = Object.keys(unzipSync(fs.readFileSync(udbm)));
+    must(!zn.some((n) => /^maps\//.test(n) && !/\.map\.json$|\.png$|\.vtt\.json$/i.test(n)), 'в maps/ лишние файлы: ' + zn.join(','));
     const m = archive.readManifest(udbm);
     must(m.format === 'udbm/1', 'формат manifest');
     must(!JSON.stringify(m).toLowerCase().includes(path.basename(tmp).toLowerCase()), 'в manifest остались абсолютные пути');

@@ -32,9 +32,9 @@ host.campaigns.duplicate(id) -> Campaign    // copy of settings: new id, name "<
 host.campaigns.onChanged(cb(campaign))      // (sync) returns unsubscribe; fired after create/update(current)/switch/remove(current). cb gets null when no campaign is left.
                                             // Renderer compares campaign.id with the previous one: different id => tear down the scene and reinitialise (store/media/showcase/blog/watch). A switch must be preceded by flushing pending saves (VTT.gm.flush()), because main switches immediately.
 
-host.archive.estimate({maps,media,battlelog}) -> {bytes, files, parts:{data,maps,media,battlelog}}   // uncompressed size of the CURRENT campaign export
+host.archive.estimate({maps,media,battlelog}) -> {bytes, files, parts:{data,maps,media,battlelog}, speed, seconds}   // uncompressed size of the CURRENT campaign export
 host.archive.export(destPath, {maps,media,battlelog}) -> {path, bytes, files}   // destPath must come from dialog.saveFile (one-shot); writes <name>.udbm
-host.archive.inspect(udbmPath) -> {name, app, created, include, media, fileBytes, defaultDataDir}
+host.archive.inspect(udbmPath) -> {name, app, created, include, media, fileBytes, seconds, defaultDataDir}
 host.archive.import(udbmPath, {mode:'new', dataDir, name?}) -> Campaign   // extracts under dataDir (maps/, media/<id>/, battlelog/), creates the campaign and makes it current
 host.archive.import(udbmPath, {mode:'replace'}) -> Campaign              // overwrites same-named files in the CURRENT campaign (data + included maps/media/logs in its folders); renderer must call VTT.gm.reinit()
    // errors: ARCHIVE_NOT_UDBM, ARCHIVE_FORMAT:<format> (not udbm/1), DATA_DIR_IN_USE, DATA_DIR_REQUIRED, NO_CAMPAIGN
@@ -109,7 +109,7 @@ Default `folders.data` = `<Documents>/Universal DnD Battle map/<safe name>`. Sto
 - GM -> player `{t:'reset'}`: campaign switched; player clears map/scene/showcase and shows the splash until the next `map`.
 
 ## .udbm (stage 2)
-Zip (fflate). `manifest.json` first: `{format:'udbm/1', app, created, include:{maps,media,battlelog}, campaign:{name, folders:{data:'data', maps:'maps'|null, battlelog:'battlelog'|null, music:null}, media:[{id,label,path:'media/<id>'|null,recursive,exclude}], battlelog, playerWindow, prefs}}` — folder paths are replaced by labels, never absolute. Entries: `data/…` (everything in the data folder except `thumbs/` and `*.tmp`), `maps/…`, `media/<id>/…` (images only, respecting recursive/exclude), `battlelog/…`. Major format other than 1 is refused with `ARCHIVE_FORMAT:<format>`; entries are validated against path traversal. Code: `src/main/archive.js` (pure, tested) + `transfer.js`.
+Zip (fflate). `manifest.json` first: `{format:'udbm/1', app, created, include:{maps,media,battlelog}, campaign:{name, folders:{data:'data', maps:'maps'|null, battlelog:'battlelog'|null, music:null}, media:[{id,label,path:'media/<id>'|null,recursive,exclude}], battlelog, playerWindow, prefs}}` — folder paths are replaced by labels, never absolute. Entries: `data/…` (everything in the data folder except `thumbs/` and `*.tmp`), `maps/…` (only `*.map.json`, the image each references via `image`, and legacy `Библиотека токенов.vtt.json`), `media/<id>/…` (exactly what the showcase catalogue lists: same image extensions/recursive/exclude rules, shared code `renderer/js/media-filter.js`), `battlelog/…` (`*.md` only). `seconds` is an estimate from measured throughput (global settings `archiveSpeed` for export / `archiveImportSpeed` for import, bytes/s, exponential average; default 11 MB/s). Major format other than 1 is refused with `ARCHIVE_FORMAT:<format>`; entries are validated against path traversal. Code: `src/main/archive.js` (pure, tested) + `transfer.js`.
 
 ## Logging (stage 2)
 `userData/logs/main.log`, rotation at 5 MB keeping 3 files (`main.log`, `main.1.log`, `main.2.log`); first line holds app/Electron/Chrome/Node/Windows versions. Main `uncaughtException`/`unhandledRejection` and renderer errors (via `host.log.report`) are written there.

@@ -8,10 +8,12 @@ const fs = require('fs');
 const path = require('path');
 const { Zip, ZipDeflate, Unzip, UnzipInflate } = require('fflate');
 const pu = require('./pathutil');
+const mediaFilter = require('../renderer/js/media-filter');
 
 const FORMAT = 'udbm/1';
 const FORMAT_MAJOR = 1;
-const IMG_RE = /\.(png|jpe?g|webp|gif|svg)$/i;
+const LEGACY_LIB = 'Библиотека токенов.vtt.json';
+const DEFAULT_SPEED = 11 * 1024 * 1024;   // байт/с: замерено 3.3 ГБ за ~5 мин
 const NO_COMPRESS_RE = /\.(png|jpe?g|webp|gif|zip|udbm|mp3|ogg|flac|m4a|opus|aac)$/i;
 
 const mediaPrefix = (id) => `media/${pu.safeName(id, 'm')}/`;
@@ -104,6 +106,35 @@ function walk(dir, skipDirs, filter, out, rel) {
   return out;
 }
 
+/** Карты: *.map.json (рекурсивно) + картинка из поля image (относительно json) + старая библиотека токенов в корне. -> [{rel, abs, size}] */
+function collectMaps(root) {
+  const out = [], seen = new Set();
+  const add = (abs) => {
+    const key = path.resolve(abs).toLowerCase();
+    if (seen.has(key)) return;
+    let st; try { st = fs.statSync(abs); } catch (_) { return; }
+    if (!st.isFile()) return;
+    seen.add(key);
+    out.push({ abs, rel: path.relative(root, abs).split(path.sep).join('/'), size: st.size });
+  };
+  const jsons = walk(root, [], (n) => /\.map\.json$/i.test(n), [], '');
+  for (const j of jsons) {
+    add(j.abs);
+    let img = null;
+    try { const d = JSON.parse(fs.readFileSync(j.abs, 'utf8')); if (d && typeof d.image === 'string' && d.image) img = d.image; } catch (_) { /* битый json — только он сам */ }
+    if (!img) continue;
+    let abs; try { abs = pu.resolveIn(path.dirname(j.abs), img); } catch (_) { continue; }
+    if (pu.isInside(root, abs)) add(abs);
+  }
+  add(path.join(root, LEGACY_LIB));
+  return out;
+}
+
+/** Файлы источника «Показа»: те же правила, что в каталоге (renderer/js/media-filter.js). */
+function collectMedia(m) {
+  return walk(m.path, [], mediaFilter.make(m), [], '');
+}
+
 /** Список файлов для экспорта: [{name, abs, size, part}] */
 function collect(c, include) {
   const f = c.folders || {};
@@ -117,18 +148,23 @@ function collect(c, include) {
   if (f.data) {
     push('data/', 'data', walk(f.data, [path.join(f.data, 'thumbs')].concat(inData), (n) => !/\.tmp$/i.test(n) && n !== '.DS_Store' && n !== 'Thumbs.db', [], ''));
   }
-  if (include && include.maps && f.maps) push('maps/', 'maps', walk(f.maps, [], null, [], ''));
-  if (include && include.battlelog && f.battlelog) push('battlelog/', 'battlelog', walk(f.battlelog, [], null, [], ''));
+  if (include && include.maps && f.maps) push('maps/', 'maps', collectMaps(f.maps));
+  if (include && include.battlelog && f.battlelog) push('battlelog/', 'battlelog', walk(f.battlelog, [], (n) => /\.md$/i.test(n), [], ''));
   if (include && include.media) {
-    for (const m of c.media || []) {
-      if (!m.path) continue;
-      let re = null; if (m.exclude) { try { re = new RegExp(m.exclude, 'i'); } catch (_) { re = null; } }
-      const list = walk(m.path, [], (n, r) => IMG_RE.test(n) && !(re && re.test(n)) && (m.recursive || r.indexOf('/') < 0), [], '');
-      push(mediaPrefix(m.id), 'media', list);
-    }
+    for (const m of c.media || []) if (m.path) push(mediaPrefix(m.id), 'media', collectMedia(m));
   }
   return out;
 }
+
+// ---------------------------------------------------------------- время
+/** Новая оценка скорости (байт/с): экспоненциальное среднее; мусорные замеры игнорируются. */
+function nextSpeed(prev, bytes, ms) {
+  if (!(bytes > 0) || !(ms > 0) || bytes < 1024 * 1024) return prev > 0 ? prev : DEFAULT_SPEED;   // слишком мало данных для замера
+  const cur = bytes / (ms / 1000);
+  const p = prev > 0 ? prev : DEFAULT_SPEED;
+  return Math.round(0.5 * p + 0.5 * cur);
+}
+const etaSeconds = (bytes, speed) => Math.ceil(bytes / (speed > 0 ? speed : DEFAULT_SPEED));
 
 function estimate(c, include) {
   const files = collect(c, include);
@@ -181,7 +217,7 @@ function exportTo(dest, c, include, appVersion) {
   if (err) { try { fs.unlinkSync(tmp); } catch (_) {} throw err; }
   try { fs.unlinkSync(dest); } catch (_) {}
   fs.renameSync(tmp, dest);
-  return { bytes: written, files: files.length, manifest };
+  return { bytes: written, files: files.length, manifest, inBytes: files.reduce((a, x) => a + x.size, 0) };
 }
 
 // ---------------------------------------------------------------- чтение
@@ -242,5 +278,6 @@ function extractTo(file, manifest, mapping) {
 
 module.exports = {
   FORMAT, buildManifest, parseManifest, targetsUnder, mappingOf, campaignFromManifest, resolveEntry,
+  LEGACY_LIB, DEFAULT_SPEED, nextSpeed, etaSeconds, collectMaps, collectMedia,
   collect, estimate, exportTo, readManifest, extractTo,
 };

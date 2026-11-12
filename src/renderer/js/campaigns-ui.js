@@ -37,6 +37,24 @@
     if (fn) b.onclick = fn;
     return b;
   }
+  function fmtEta(sec) {
+    sec = Math.max(0, Math.round(sec || 0));
+    if (sec < 60) return tr('archive.eta.lt1');
+    return tr('archive.eta.min', { m: Math.floor(sec / 60), s: sec % 60 });
+  }
+  // модальное «занято»: рисуем и ждём кадр, чтобы оверлей реально появился до тяжёлой работы в main
+  async function withBusy(text, work) {
+    var ov = el('div', 'cu-busy');
+    var box = el('div', 'cu-busy-box');
+    box.appendChild(el('div', 'cu-spin'));
+    box.appendChild(el('div', 'cu-busy-text', text));
+    ov.appendChild(box);
+    document.body.appendChild(ov);
+    await new Promise(function (r) { requestAnimationFrame(function () { requestAnimationFrame(function () { setTimeout(r, 60); }); }); });
+    try { return await work(); }
+    finally { if (ov.parentNode) ov.parentNode.removeChild(ov); }
+  }
+
   function fmtBytes(n) {
     if (n < 1024) return n + ' ' + tr('unit.b');
     if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' ' + tr('unit.kb');
@@ -189,6 +207,8 @@
     var hasMaps = !!(c.folders && c.folders.maps), hasMedia = (c.media || []).some(function (x) { return x.path; });
     var hasLog = !!(c.folders && c.folders.battlelog) && !(c.battlelog && c.battlelog.enabled === false);
     var sizeEl = el('div', 'cu-size');
+    var warnEl = el('div', 'cu-warn');
+    var eta = '';
     var seq = 0;
     async function recount() {
       var my = ++seq;
@@ -196,7 +216,9 @@
       try {
         var r = await H().archive.estimate(inc);
         if (my !== seq) return;
-        sizeEl.textContent = tr('archive.export.size', { size: fmtBytes(r.bytes), files: r.files, data: fmtBytes(r.parts.data), maps: fmtBytes(r.parts.maps), media: fmtBytes(r.parts.media), logs: fmtBytes(r.parts.battlelog) });
+        eta = fmtEta(r.seconds);
+        warnEl.textContent = tr('archive.export.warn', { eta: eta });
+        sizeEl.textContent = tr('archive.export.size', { size: fmtBytes(r.bytes), files: r.files, data: fmtBytes(r.parts.data), maps: fmtBytes(r.parts.maps), media: fmtBytes(r.parts.media), logs: fmtBytes(r.parts.battlelog) }) + '\n' + tr('archive.eta.label', { eta: eta });
       } catch (e) { sizeEl.textContent = errText(e); }
     }
     function chk(key, text, enabled) {
@@ -210,6 +232,7 @@
     chk('media', tr('archive.export.media'), hasMedia);
     chk('battlelog', tr('archive.export.logs'), hasLog);
     m.body.appendChild(sizeEl);
+    m.body.appendChild(warnEl);
     var msg = el('div', 'cfg-note cu-msg'); m.body.appendChild(msg);
     m.actions.appendChild(btn(tr('common.cancel'), null, function () { m.close(); }));
     var go = btn(tr('archive.export.save'), 'primary', async function () {
@@ -217,7 +240,7 @@
       if (!dest) return;
       go.disabled = true; msg.classList.remove('err'); msg.textContent = tr('archive.export.working');
       try {
-        var r = await H().archive.export(dest, inc);
+        var r = await withBusy(tr('archive.export.busy') + '\n' + tr('archive.export.warn', { eta: eta }), function () { return H().archive.export(dest, inc); });
         m.close();
         VTT.ui.alert({ title: tr('archive.export.done'), text: tr('archive.export.doneText', { path: r.path, size: fmtBytes(r.bytes), files: r.files }) });
       } catch (e) { msg.classList.add('err'); msg.textContent = errText(e); go.disabled = false; }
@@ -248,6 +271,8 @@
       var d = el('div'); d.appendChild(el('b', null, r[0] + ': ')); d.appendChild(document.createTextNode(r[1])); sum.appendChild(d);
     });
     m.body.appendChild(sum);
+    var impEta = fmtEta(info.seconds);
+    m.body.appendChild(el('div', 'cu-warn', tr('archive.import.warn', { eta: impEta })));
 
     var optNew = VTT.cfg.checkRow(tr('archive.import.asNew'), true, null);
     var optRep = VTT.cfg.checkRow(tr('archive.import.replace', { name: cur ? cur.name : '' }), false, null);
@@ -282,7 +307,9 @@
       }
       go.disabled = true; msg.classList.remove('err'); msg.textContent = tr('archive.import.working');
       try {
-        var r = await H().archive.import(file, mode === 'replace' ? { mode: 'replace' } : { mode: 'new', dataDir: dataDir, name: name.trim() || info.name });
+        var r = await withBusy(tr('archive.import.busy') + '\n' + tr('archive.import.warn', { eta: impEta }), function () {
+          return H().archive.import(file, mode === 'replace' ? { mode: 'replace' } : { mode: 'new', dataDir: dataDir, name: name.trim() || info.name });
+        });
         m.close();
         if (mode === 'replace' && VTT.gm && VTT.gm.reinit) await VTT.gm.reinit();   // тот же id кампании: переинициализация вручную
         var n = r && r._import ? r._import.files : 0;

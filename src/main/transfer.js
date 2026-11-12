@@ -7,6 +7,7 @@ const campaigns = require('./campaigns');
 const kv = require('./kv');
 const archive = require('./archive');
 const pu = require('./pathutil');
+const settings = require('./settings');
 
 const incOf = (o) => ({ maps: !!(o && o.maps), media: !!(o && o.media), battlelog: !!(o && o.battlelog) });
 function need() {
@@ -15,12 +16,24 @@ function need() {
   return c;
 }
 
-function estimate(include) { return archive.estimate(need(), incOf(include)); }
+const speedOf = (key) => { const v = settings.get()[key]; return v > 0 ? v : archive.DEFAULT_SPEED; };
+function learn(key, bytes, t0) {
+  try { settings.set({ [key]: archive.nextSpeed(speedOf(key), bytes, Date.now() - t0) }); } catch (_) { /* не критично */ }
+}
+
+function estimate(include) {
+  const r = archive.estimate(need(), incOf(include));
+  r.speed = speedOf('archiveSpeed');
+  r.seconds = archive.etaSeconds(r.bytes, r.speed);
+  return r;
+}
 
 function exportCurrent(dest, include) {
   const c = need();
   kv.flushAll();
+  const t0 = Date.now();
   const r = archive.exportTo(dest, c, incOf(include), app.getVersion());
+  learn('archiveSpeed', r.inBytes, t0);
   return { path: dest, bytes: r.bytes, files: r.files };
 }
 
@@ -29,12 +42,20 @@ function inspect(file) {
   return {
     name: m.campaign.name, app: m.app || '', created: m.created || '', include: m.include || {},
     media: (m.campaign.media || []).length, fileBytes: fs.statSync(file).size,
+    seconds: archive.etaSeconds(fs.statSync(file).size, speedOf('archiveImportSpeed')),
     defaultDataDir: campaigns.defaultDataDir(m.campaign.name),
   };
 }
 
 /** opts: {mode:'new'|'replace', dataDir?, name?} -> Campaign */
 function importFile(file, opts) {
+  const t0 = Date.now(), size = fs.statSync(file).size;
+  const r = importFile0(file, opts);
+  learn('archiveImportSpeed', size, t0);
+  return r;
+}
+
+function importFile0(file, opts) {
   const o = opts || {};
   const manifest = archive.readManifest(file);
   if (o.mode === 'replace') {

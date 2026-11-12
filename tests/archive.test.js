@@ -194,3 +194,49 @@ test('отчёт: логи + описание + версии, путь поль�
   assert.ok(strFromU8(files['logs/main.log']).includes('<HOME>\\Documents'));
   assert.strictEqual(JSON.parse(strFromU8(files['versions.json'])).app, '1.0');
 });
+
+test('экспорт берёт только то, что умеет приложение: карты+их картинки, картинки Показа, *.md', () => {
+  const root = tmpDir('sel');
+  const c = sampleCampaign(root);
+  const mp = c.folders.maps;
+  write(path.join(mp, 'sub', 'b.map.json'), '{"image":"b (VTT).png"}');
+  write(path.join(mp, 'sub', 'b (VTT).png'), 'B');
+  write(path.join(mp, 'sub', 'b-source.psd'), 'PSD'.repeat(1000));
+  write(path.join(mp, 'orphan.png'), 'orphan');
+  write(path.join(mp, 'map.svg'), '<svg/>');
+  write(path.join(mp, 'notes.txt'), 'x');
+  write(path.join(mp, 'c.map.json'), '{"image":"../escape.png"}');
+  write(path.join(root, 'escape.png'), 'no');
+  write(path.join(mp, 'Библиотека токенов.vtt.json'), '{"tokens":[]}');
+  write(path.join(c.folders.battlelog, 'Бой 2.MD'), '# 2');
+  write(path.join(c.folders.battlelog, 'dump.json'), '{}');
+  write(path.join(c.media[0].path, 'Гоблин-123.JPG'), 'g');
+  write(path.join(c.media[0].path, 'readme.md'), 'r');
+  const names = (inc) => archive.collect(c, inc).map((f) => f.name).filter((n) => !n.startsWith('data/')).sort();
+  assert.deepStrictEqual(names({ maps: true, media: true, battlelog: true }), [
+    'battlelog/Бой 1.md', 'battlelog/Бой 2.MD',
+    'maps/Библиотека токенов.vtt.json', 'maps/a.map.json', 'maps/a.png', 'maps/c.map.json', 'maps/sub/b (VTT).png', 'maps/sub/b.map.json',
+    'media/m1/Гоблин-123.JPG', 'media/m1/Орк.png',
+  ].sort());
+  // рекурсивный источник с exclude — как в каталоге Показа
+  c.media[0].recursive = true; c.media[0].exclude = '^deep';
+  assert.ok(!names({ media: true }).includes('media/m1/sub/deep.png'));
+  c.media[0].exclude = null;
+  assert.ok(names({ media: true }).includes('media/m1/sub/deep.png'));
+});
+
+test('media-filter: общий с каталогом Показа', () => {
+  const mf = require('../src/renderer/js/media-filter');
+  const f = mf.make({ recursive: false, exclude: 'tmp' });
+  assert.ok(f('a.PNG', 'a.PNG') && !f('a.txt', 'a.txt') && !f('tmp1.png', 'tmp1.png') && !f('a.png', 'd/a.png'));
+  assert.ok(mf.make({ recursive: true })('a.webp', 'd/a.webp'));
+});
+
+test('скорость и время: оценка по умолчанию, экспоненциальное среднее, мусор игнорируется', () => {
+  const MB = 1024 * 1024;
+  assert.strictEqual(archive.etaSeconds(110 * MB, 0), 10);
+  assert.strictEqual(archive.etaSeconds(110 * MB, 22 * MB), 5);
+  assert.strictEqual(archive.nextSpeed(null, 1000, 5), archive.DEFAULT_SPEED);   // < 1 МБ — не замер
+  assert.strictEqual(archive.nextSpeed(10 * MB, 100 * MB, 5000), Math.round(0.5 * 10 * MB + 0.5 * 20 * MB));
+  assert.strictEqual(archive.nextSpeed(10 * MB, 100 * MB, 0), 10 * MB);
+});
