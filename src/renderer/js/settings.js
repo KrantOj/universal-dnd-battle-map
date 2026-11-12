@@ -24,6 +24,39 @@
     }).catch(function (e) { msg(tr('common.saveFailed', { msg: e && e.message || e }), true); });
   }
 
+  // смена папки данных. Если в старой есть данные приложения — спрашиваем: перенести / сменить без переноса / отмена.
+  // Пока человек не подтвердил, ничего не меняется и в новую папку ничего не пишется.
+  async function changeData(p, row) {
+    var from = camp.folders.data;
+    if (from && p.toLowerCase() === from.toLowerCase()) return;
+    var H = window.host, opts = { move: false };
+    try {
+      var info = from ? await H.campaigns.inspectDataDir(from) : null;
+      if (info && info.owned > 0) {
+        var r = await C().choose3(tr('settings.move.title'), tr('settings.move.text', { from: from, to: p, n: info.owned }),
+          { sub: tr('settings.move.ok'), asis: tr('settings.move.no'), other: tr('common.cancel') });
+        if (r === 'other') { if (row && row.set) row.set(from); return; }
+        opts.move = r === 'sub';
+        if (opts.move) {
+          var dst = await H.campaigns.inspectDataDir(p);
+          if (dst && dst.owned > 0) {
+            var cf = await C().choose3(tr('settings.conflict.title'), tr('settings.conflict.text', { dir: p, n: dst.owned }),
+              { sub: tr('settings.conflict.overwrite'), asis: tr('settings.conflict.merge'), other: tr('common.cancel') });
+            if (cf === 'other') { if (row && row.set) row.set(from); return; }
+            opts.conflict = cf === 'sub' ? 'overwrite' : 'merge';
+          }
+        }
+      }
+      if (VTT.gm && VTT.gm.flush) await VTT.gm.flush();     // дописать в старую папку всё, что ещё в памяти
+      var c = await H.campaigns.relocateData(camp.id, p, opts);
+      if (c) camp = c;
+      msg(opts.move ? tr('settings.move.done', { n: c && c._moved || 0 }) : (info && info.owned > 0 ? tr('settings.move.left', { from: from }) : tr('settings.saved')));
+    } catch (e) {
+      msg(tr('common.saveFailed', { msg: e && e.message || e }), true);
+      if (row && row.set) row.set(from);
+    }
+  }
+
   function build() {
     var body = $('setBody');
     body.textContent = '';
@@ -39,7 +72,7 @@
 
     // папки
     body.appendChild(cfg.el('h3', null, tr('settings.folders')));
-    var data = cfg.folderRow({ label: tr('settings.dataFolder'), value: camp.folders.data, pickTitle: tr('folder.data.pickTitle'), onChange: function (p) { if (p) update({ folders: { data: p } }); } });
+    var data = cfg.folderRow({ label: tr('settings.dataFolder'), value: camp.folders.data, pickTitle: tr('folder.data.pickTitle'), guardData: true, onChange: function (p) { if (p) changeData(p, data); } });
     body.appendChild(data.el);
     body.appendChild(cfg.el('div', 'cfg-note', tr('settings.dataNote')));
     body.appendChild(cfg.folderRow({ label: tr('settings.mapsFolder'), value: camp.folders.maps, empty: tr('common.notPicked'), pickTitle: tr('folder.maps.pickTitle'), clearable: true,

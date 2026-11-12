@@ -37,7 +37,23 @@ contextBridge.exposeInMainWorld('host', {
     update: (id, p) => inv('campaigns:update', id, p),
     switch: (id) => inv('campaigns:switch', id),
     remove: (id, o) => inv('campaigns:remove', id, o),
+    duplicate: (id) => inv('campaigns:duplicate', id),
+    inspectDataDir: (dir) => inv('campaigns:inspectDataDir', dir),
+    relocateData: (id, dir, o) => inv('campaigns:relocateData', id, dir, o),
     onChanged: (cb) => sub('campaigns:changed', cb),
+  },
+  archive: {
+    estimate: (include) => inv('archive:estimate', include),
+    export: (dest, include) => inv('archive:export', dest, include),
+    inspect: (file) => inv('archive:inspect', file),
+    import: (file, o) => inv('archive:import', file, o),
+  },
+  watch: {
+    onChange: (cb) => sub('watch:change', cb),
+  },
+  report: {
+    collect: (dest, description) => inv('report:collect', dest, description),
+    openIssues: () => inv('report:openIssues'),
   },
   kv: {
     get: (k) => inv('kv:get', k),
@@ -83,5 +99,6 @@ contextBridge.exposeInMainWorld('host', {
   },
   log: {
     openFolder: () => inv('log:openFolder'),
+    report: (rec) => { try { ipcRenderer.send('log:report', rec); } catch (_) { /* ignore */ } },
   },
 });

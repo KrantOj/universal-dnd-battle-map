@@ -18,7 +18,7 @@
     lib: [], undo: [], pending: null, drag: null, rect: null, painting: null,
     segs: null, camp: null, entries: [], hover: null, space: false,
     pan: null, party: false, sentImages: {}, sentView: null,
-    saveTimer: null, editing: null, lastMapName: null,
+    saveTimer: null, editing: null, lastMapName: null, curEntry: null,
     libTimer: null, libCollapsed: {}, libQuery: '', libSearchTimer: null
   };
 
@@ -74,7 +74,7 @@
     return a && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName);
   }
   function modalOpen() {
-    return !$('tokenDlg').hidden || !$('help').hidden || !$('picker').hidden || !$('settingsDlg').hidden;
+    return !$('tokenDlg').hidden || !$('help').hidden || !$('picker').hidden || !$('settingsDlg').hidden || !!document.querySelector('.cu-overlay');
   }
 
   function segs() {
@@ -143,6 +143,7 @@
     S.scene = sc; S.segs = null; S.undo = []; S.sel = null; S.pending = null; S.drag = null; S.sentView = null;
     S.r.setMap(map); S.r.setScene(sc); S.r.selectedId = null; S.r.ruler = null;
     S.r.fit();
+    hideReloadBar();
     $('picker').hidden = true;
     syncSettingsUI();
     $('roundNum').textContent = sc.round;
@@ -155,25 +156,28 @@
   }
   function openEntry(en) {
     $('pickerMsg').textContent = '';
-    return VTT.store.loadMapFromEntry(en).then(openMap).catch(function (e) {
+    return VTT.store.loadMapFromEntry(en).then(function (map) { S.curEntry = en; return openMap(map); }).catch(function (e) {
       $('pickerMsg').textContent = tr('gm.err.load', { msg: e.message || e });
     });
   }
 
   // ------------------------------------------------------------------ выбор карты / папка карт / импорт
+  var refreshSeq = 0;
   function mapsRoot() { return S.camp && S.camp.folders ? S.camp.folders.maps : null; }
 
-  async function refreshMaps() {
+  async function refreshMaps(quiet) {
     var list = $('mapList'), hasRoot = !!mapsRoot();
     $('btnPickDir').hidden = hasRoot;
     $('btnImportMap').hidden = false;
     $('dirName').textContent = hasRoot ? tr('picker.dirName', { dir: mapsRoot() }) : '';
-    list.textContent = '';
-    S.entries = [];
-    if (!hasRoot) { list.textContent = tr('picker.noDir'); return []; }
-    list.textContent = tr('picker.reading');
+    if (!quiet) { list.textContent = ''; S.entries = []; }
+    if (!hasRoot) { list.textContent = tr('picker.noDir'); S.entries = []; return []; }
+    if (!quiet) list.textContent = tr('picker.reading');
+    var mySeq = ++refreshSeq;
     try {
-      S.entries = await VTT.store.listMaps();
+      var found = await VTT.store.listMaps();
+      if (mySeq !== refreshSeq) return found;       // пришёл более новый запрос
+      S.entries = found;
     } catch (e) {
       list.textContent = '';
       if (!VTT.store.isRootUnset(e)) $('pickerMsg').textContent = tr('picker.err.read', { msg: e.message });
@@ -1212,16 +1216,87 @@
     });
   }
 
+  // ------------------------------------------------------------------ смена кампании / живое обновление папки карт
+  function hideReloadBar() { var b = $('reloadBar'); if (b) b.hidden = true; }
+  function showReloadBar() {
+    var b = $('reloadBar'); if (!b || !S.map) return;
+    $('reloadText').textContent = tr('watch.mapChanged', { name: S.map.title || S.map.name });
+    b.hidden = false;
+  }
+  // сохранить отложенное (сцена, библиотека) в ТЕКУЩУЮ кампанию — вызывать ДО переключения кампании
+  async function flush() {
+    var jobs = [];
+    if (S.saveTimer) { clearTimeout(S.saveTimer); S.saveTimer = null; if (S.scene) jobs.push(VTT.store.saveScene(S.scene)); }
+    if (S.libTimer) { clearTimeout(S.libTimer); S.libTimer = null; jobs.push(VTT.store.saveLibrary(S.lib)); }
+    try { await Promise.all(jobs); } catch (e) { console.warn('flush', e); }
+  }
+  // закрыть сцену: карта, токены, библиотека, окно игроков
+  function closeScene() {
+    clearTimeout(S.saveTimer); S.saveTimer = null; clearTimeout(S.libTimer); S.libTimer = null;
+    S.map = null; S.scene = null; S.segs = null; S.undo = []; S.sel = null; S.pending = null; S.drag = null; S.rect = null; S.painting = null;
+    S.lib = []; S.entries = []; S.lastMapName = null; S.curEntry = null; S.sentImages = {}; S.sentView = null; S.hover = null;
+    S.r.setMap(null); S.r.setScene(null); S.r.selectedId = null; S.r.ruler = null;
+    hideReloadBar(); closeMenu();
+    $('roundNum').textContent = '1';
+    setMsg('');
+    renderList(); renderLib();
+    VTT.sync.send({ t: 'reset' });
+  }
+  async function loadCampaignData() {
+    $('pickerMsg').textContent = '';
+    $('picker').hidden = false;
+    try { S.lib = migrateLib(await VTT.store.getLibrary()); } catch (e) { S.lib = []; }
+    renderLib(); libChanged(true);
+    await initPicker();
+  }
+  // полная переинициализация под (новую) текущую кампанию без перезапуска
+  async function reinit() {
+    try { S.camp = await window.host.campaigns.current(); } catch (e) { S.camp = null; }
+    closeScene();
+    if (!S.camp) { window.host.app.showWizard(); return; }
+    await loadCampaignData();
+  }
   function onCampaign(c) {
-    var prev = mapsRoot();
+    var prev = mapsRoot(), prevId = S.camp && S.camp.id, prevData = S.camp && S.camp.folders && S.camp.folders.data;
     S.camp = c || null;
+    if (!c || c.id !== prevId) { reinit(); return; }
+    if ((c.folders && c.folders.data) !== prevData) { reinit(); return; }   // другая папка данных: библиотека, сцены, закрепления — заново с диска
     if (mapsRoot() !== prev) { refreshMaps(); reloadLibrary(); }
+  }
+  function onWatch(ev) {
+    if (!ev || !S.camp) return;
+    if (ev.kind !== 'maps') return;
+    refreshMaps(true);
+    if (!S.map || !S.curEntry) return;
+    var mine = [String(S.curEntry.rel).toLowerCase(), String(S.map.imageRel || '').toLowerCase()];
+    if ((ev.rels || []).some(function (r) { return mine.indexOf(String(r).toLowerCase()) >= 0; })) showReloadBar();
+  }
+  // перечитать открытую карту с диска, сцена (токены, туман, бой) сохраняется
+  async function reloadCurrent() {
+    var en = S.curEntry;
+    hideReloadBar();
+    if (!en || !S.map) return;
+    try {
+      var map = await VTT.store.loadMapFromEntry(en, { bust: true });
+      var sc = normalizeScene(S.scene, map);
+      S.map = map; S.scene = sc; S.segs = null;
+      S.r.setMap(map); S.r.setScene(sc);
+      syncSettingsUI();
+      renderList();
+      pushMap();
+      if (map.warning) VTT.ui.alert({ title: tr('common.attention'), text: map.warning });
+      setMsg(tr('gm.map.status', { name: map.title || map.name, cols: map.cols, rows: map.rows }));
+      toast(tr('watch.reloaded'));
+    } catch (e) {
+      toast(tr('gm.err.load', { msg: e && e.message || e }), 4000);
+    }
   }
   function onMenu(action) {
     if (action === 'import-map') { $('picker').hidden = false; refreshMaps(); importMapDialog(); }
     else if (action === 'settings') VTT.settings.open();
     else if (action === 'wizard') window.host.app.showWizard();
-    else if (action === 'campaigns') VTT.ui.alert({ title: tr('gm.campaigns.title'), text: tr('gm.campaigns.soon') });
+    else if (action === 'campaigns') VTT.campaignsUi.openManager();
+    else if (action === 'report') VTT.reportUi.open();
   }
 
   VTT.gm = {
@@ -1234,12 +1309,14 @@
       try { S.camp = await window.host.campaigns.current(); } catch (e) { S.camp = null; }
       if (!S.camp) { window.host.app.showWizard(); return; }
       window.host.campaigns.onChanged(onCampaign);
+      window.host.watch.onChange(onWatch);
+      $('btnReload').onclick = reloadCurrent;
+      $('btnReloadX').onclick = hideReloadBar;
       if (VTT.blog) VTT.blog.init();
-      $('picker').hidden = false;
-      try { S.lib = migrateLib(await VTT.store.getLibrary()); } catch (e) { S.lib = []; }
-      renderLib(); libChanged(true);
-      await initPicker();
+      await loadCampaignData();
     },
+    flush: flush,
+    reinit: reinit,
     _state: S,
     _api: { openMap: openMap, pushMap: pushMap, pushState: pushState, setStatus: setStatus, placeToken: placeToken, startPlacement: startPlacement, duplicate: duplicate,
             changed: changed, selectToken: selectToken, newRound: newRound, toast: toast, getToken: getToken }

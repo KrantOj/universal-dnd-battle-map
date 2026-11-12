@@ -11,6 +11,43 @@
     return e;
   }
 
+  // диалог с тремя вариантами -> 'sub' | 'asis' | 'other' (Esc/клик мимо = 'other')
+  function choose3(title, text, labels) {
+    return new Promise(function (resolve) {
+      var overlay = el('div', 'vtt-ui-backdrop'), dlg = el('div', 'vtt-ui-dialog');
+      dlg.setAttribute('role', 'dialog'); dlg.setAttribute('aria-modal', 'true');
+      dlg.appendChild(el('div', 'vtt-ui-title', title));
+      dlg.appendChild(el('div', 'vtt-ui-text', text));
+      var acts = el('div', 'vtt-ui-actions');
+      function done(v) { document.removeEventListener('keydown', onKey, true); overlay.remove(); resolve(v); }
+      function onKey(e) { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done('other'); } }
+      [['other', labels.other, ''], ['asis', labels.asis, ''], ['sub', labels.sub, ' vtt-ui-btn-ok']].forEach(function (b) {
+        var btn = el('button', 'vtt-ui-btn' + b[2], b[1]); btn.type = 'button';
+        btn.onclick = function () { done(b[0]); };
+        acts.appendChild(btn);
+      });
+      dlg.appendChild(acts); overlay.appendChild(dlg); document.body.appendChild(overlay);
+      document.addEventListener('keydown', onKey, true);
+      acts.lastChild.focus();
+    });
+  }
+
+  // выбор папки данных: если в ней есть чужие файлы — предупреждение. -> путь | null (выбрать другую / отмена)
+  async function guardDataDir(p) {
+    var info = null;
+    try { info = await window.host.campaigns.inspectDataDir(p); } catch (e) { return p; }
+    if (!info || !info.foreignCount) return p;
+    var list = info.foreign.join(', ') + (info.foreignCount > info.foreign.length ? ' ' + tr('datadir.warn.more', { n: info.foreignCount - info.foreign.length }) : '');
+    var r = await choose3(tr('datadir.warn.title'), tr('datadir.warn.text', { dir: p, list: list }), { sub: tr('datadir.sub'), asis: tr('datadir.asis'), other: tr('datadir.other') });
+    if (r === 'asis') return p;
+    if (r === 'sub') {
+      var sep = p.indexOf(String.fromCharCode(92)) >= 0 ? String.fromCharCode(92) : '/';
+      var last = p.charAt(p.length - 1);
+      return p + (last === '/' || last === sep ? '' : sep) + 'Universal DnD Battle map';
+    }
+    return null;
+  }
+
   // строка «папка»: подпись, путь, кнопки. opts: {label, value, empty, pickTitle, clearable, onChange(path|null)}
   function folderRow(opts) {
     var row = el('div', 'cfg-row');
@@ -31,12 +68,20 @@
       path.title = value || '';
       clr.hidden = !value;
     }
-    pick.onclick = function () {
-      window.host.dialog.pickFolder({ title: opts.pickTitle || opts.label || tr('cfg.folder'), defaultPath: value || undefined }).then(function (p) {
+    pick.onclick = async function () {
+      var start = value || undefined;
+      for (;;) {
+        var p = await window.host.dialog.pickFolder({ title: opts.pickTitle || opts.label || tr('cfg.folder'), defaultPath: start });
         if (!p) return;
+        if (opts.guardData) {
+          var g = await guardDataDir(p);
+          if (!g) { start = p; continue; }   // «Выбрать другую» — снова диалог выбора
+          p = g;
+        }
         value = p; paint();
         if (opts.onChange) opts.onChange(p);
-      });
+        return;
+      }
     };
     clr.onclick = function () { value = null; paint(); if (opts.onChange) opts.onChange(null); };
     paint();
@@ -97,5 +142,5 @@
     return { el: row, input: cb };
   }
 
-  VTT.cfg = { el: el, folderRow: folderRow, mediaEditor: mediaEditor, checkRow: checkRow };
+  VTT.cfg = { el: el, choose3: choose3, folderRow: folderRow, guardDataDir: guardDataDir, mediaEditor: mediaEditor, checkRow: checkRow };
 })();

@@ -33,7 +33,7 @@
         var note = el('div', 'cfg-note', tr('wizard.step.data.defaultNote'));
         b.appendChild(note);
         window.host.app.defaultDataDir(D.name.trim() || tr('wizard.defaultName')).then(function (p) { D.defDir = p; note.textContent = tr('wizard.step.data.defaultPath', { path: p }); }).catch(function () {});
-        b.appendChild(cfg.folderRow({ value: D.dataDir, empty: tr('wizard.step.data.empty'), pickTitle: tr('folder.data.pickTitle'), clearable: true,
+        b.appendChild(cfg.folderRow({ value: D.dataDir, empty: tr('wizard.step.data.empty'), pickTitle: tr('folder.data.pickTitle'), clearable: true, guardData: true,
           onChange: function (p) { D.dataDir = p; } }).el);
       },
       skippable: true, reset: function () { D.dataDir = null; }

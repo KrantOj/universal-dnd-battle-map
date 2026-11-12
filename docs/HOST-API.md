@@ -1,4 +1,4 @@
-# HOST-API — contract between main/preload and renderer (stage 1)
+# HOST-API — contract between main/preload and renderer (stages 1–2)
 
 Single source of truth. Main+preload implement it; renderer code uses ONLY `window.host` (no Node, no File System Access API, no IndexedDB, no window.open).
 All methods return Promises unless marked (sync). Errors reject with `Error(message)`; a root that is not configured rejects with message `ROOT_NOT_SET:<root>`.
@@ -27,8 +27,24 @@ host.campaigns.current() -> Campaign|null
 host.campaigns.create(partial) -> Campaign  // partial ok (no folders.data -> default dir); fills defaults, makes it current, creates data folder
 host.campaigns.update(id, patch) -> Campaign // shallow-merge of folders/battlelog/playerWindow/prefs keys (folders:{maps:null} clears maps); media replaced as whole array
 host.campaigns.switch(id) -> Campaign
-host.campaigns.remove(id, {deleteData:false})
-host.campaigns.onChanged(cb(campaign))      // (sync) returns unsubscribe; fired after update/switch
+host.campaigns.remove(id, {deleteData:false}) // deleteData removes ONLY app-owned files from the data folder (see inspectDataDir) and the folder itself only if left empty; foreign files are never touched (refused silently if shared with another campaign or it is home/Documents/Desktop/drive root)
+host.campaigns.inspectDataDir(dir) -> {exists, owned, foreign:[≤5 names], foreignCount}  // owned = files the app writes into a data folder (src/main/datafiles.js: scenes/*.scene.json, library.tokens.json, kv.json, thumbs/); foreign = anything else
+host.campaigns.relocateData(id, dir, {move:false}) -> Campaign  // sets folders.data; move:true copies app-owned files from the old folder (then deletes only those). Result has _moved. DATA_DIR_IN_USE if another campaign uses dir
+host.campaigns.duplicate(id) -> Campaign    // copy of settings: new id, name "<name> (копия)", NEW empty data folder; maps/media/battlelog folders are shared with the source; does NOT become current
+host.campaigns.onChanged(cb(campaign))      // (sync) returns unsubscribe; fired after create/update(current)/switch/remove(current). cb gets null when no campaign is left.
+                                            // Renderer compares campaign.id with the previous one: different id => tear down the scene and reinitialise (store/media/showcase/blog/watch). A switch must be preceded by flushing pending saves (VTT.gm.flush()), because main switches immediately.
+
+host.archive.estimate({maps,media,battlelog}) -> {bytes, files, parts:{data,maps,media,battlelog}, speed, seconds}   // uncompressed size of the CURRENT campaign export
+host.archive.export(destPath, {maps,media,battlelog}) -> {path, bytes, files}   // destPath must come from dialog.saveFile (one-shot); writes <name>.udbm
+host.archive.inspect(udbmPath) -> {name, app, created, include, media, fileBytes, seconds, defaultDataDir}
+host.archive.import(udbmPath, {mode:'new', dataDir, name?}) -> Campaign   // extracts under dataDir (maps/, media/<id>/, battlelog/), creates the campaign and makes it current
+host.archive.import(udbmPath, {mode:'replace'}) -> Campaign              // overwrites same-named files in the CURRENT campaign (data + included maps/media/logs in its folders); renderer must call VTT.gm.reinit()
+   // errors: ARCHIVE_NOT_UDBM, ARCHIVE_FORMAT:<format> (not udbm/1), DATA_DIR_IN_USE, DATA_DIR_REQUIRED, NO_CAMPAIGN
+
+host.watch.onChange(cb({kind:'maps'|'media', root, rels:[rel]}))   // (sync) returns unsubscribe. fs.watch(recursive) on the maps folder and every media folder of the current campaign, debounced 500 ms; rels are root-relative ('/'). Watchers are rebuilt on every campaigns.onChanged.
+
+host.report.collect(destPath, description) -> destPath   // destPath from dialog.saveFile (one-shot). Writes zip: logs/*.log + description.txt + versions.json (no scenes/images; user home path -> <HOME>), then reveals it in Explorer
+host.report.openIssues()                                // shell.openExternal('https://github.com/KrantOj/universal-dnd-battle-map/issues') — the only URL main will open
 
 host.kv.get(key) -> any|null                // per campaign, stored in data/kv.json
 host.kv.set(key, value)                     // value JSON-serialisable; null deletes
@@ -63,8 +79,9 @@ host.windows.togglePlayerFullscreen()       // called from player window (F / db
 host.sync.send(msg)                         // gm -> player window, or player -> gm window; msg is structured-cloneable plain data (no Blob/File/Image)
 host.sync.onMessage(cb(msg))                // (sync) returns unsubscribe
 
-host.menu.onAction(cb(action))              // (sync) 'import-map' | 'settings' | 'campaigns' | 'wizard'   // open-logs and about are handled in main only (never sent to renderer)
+host.menu.onAction(cb(action))              // (sync) 'import-map' | 'settings' | 'campaigns' | 'wizard' | 'report'   // open-logs and about are handled in main only (never sent to renderer)
 host.log.openFolder()
+host.log.report({level:'error'|'warn', message, source})   // fire-and-forget: renderer error -> userData/logs/main.log (used by js/errlog.js for window.onerror, unhandledrejection, console.error)
 ```
 
 `userfile://` protocol is served by main for any root of the current campaign (images, audio). Path traversal → 403.
@@ -88,4 +105,13 @@ Default `folders.data` = `<Documents>/Universal DnD Battle map/<safe name>`. Sto
 - Window positions/sizes of the GM window are saved in `userData/window-state.json`.
 
 ## Files in `data`
-`scenes/*.scene.json`, `library.tokens.json` (`{format:'vestfalia-tokens/1', tokens:[…]}`), `kv.json`, `thumbs/<hash>.jpg`, `pending-battle.json`.
+`scenes/*.scene.json`, `library.tokens.json` (may be absent in a new campaign — check `fs.exists` first, a failed `readText` is logged by Electron as an ENOENT stack) (`{format:'vestfalia-tokens/1', tokens:[…]}`), `kv.json`, `thumbs/<hash>.jpg`, `pending-battle.json`.
+
+## Player sync messages added in stage 2
+- GM -> player `{t:'reset'}`: campaign switched; player clears map/scene/showcase and shows the splash until the next `map`.
+
+## .udbm (stage 2)
+Zip (fflate). `manifest.json` first: `{format:'udbm/1', app, created, include:{maps,media,battlelog}, campaign:{name, folders:{data:'data', maps:'maps'|null, battlelog:'battlelog'|null, music:null}, media:[{id,label,path:'media/<id>'|null,recursive,exclude}], battlelog, playerWindow, prefs}}` — folder paths are replaced by labels, never absolute. Entries: `data/…` (everything in the data folder except `thumbs/` and `*.tmp`), `maps/…` (only `*.map.json`, the image each references via `image`, and legacy `Библиотека токенов.vtt.json`), `media/<id>/…` (exactly what the showcase catalogue lists: same image extensions/recursive/exclude rules, shared code `renderer/js/media-filter.js`), `battlelog/…` (`*.md` only). `seconds` is an estimate from measured throughput (global settings `archiveSpeed` for export / `archiveImportSpeed` for import, bytes/s, exponential average; default 11 MB/s). Major format other than 1 is refused with `ARCHIVE_FORMAT:<format>`; entries are validated against path traversal. Code: `src/main/archive.js` (pure, tested) + `transfer.js`.
+
+## Logging (stage 2)
+`userData/logs/main.log`, rotation at 5 MB keeping 3 files (`main.log`, `main.1.log`, `main.2.log`); first line holds app/Electron/Chrome/Node/Windows versions. Main `uncaughtException`/`unhandledRejection` and renderer errors (via `host.log.report`) are written there.

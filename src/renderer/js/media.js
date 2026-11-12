@@ -4,7 +4,7 @@
   var VTT = (window.VTT = window.VTT || {});
   var tr = VTT.i18n.t;
 
-  var IMG_RE = /\.(png|jpe?g|webp|gif|svg)$/i;
+  var IMG_RE = VTT.mediaFilter.IMG_RE;
   var THUMB_H = 220, THUMB_MAXW = 400;
   var sources = [];       // [{id, label, ...}] — текущие источники
 
@@ -40,17 +40,15 @@
   async function scan() {
     var items = [], missing = [];
     for (var si = 0; si < sources.length; si++) {
-      var src = sources[si], re = null;
-      if (src.exclude) { try { re = new RegExp(src.exclude, 'i'); } catch (e) { re = null; } }
+      var src = sources[si], accept = VTT.mediaFilter.make(src);
       var list;
       try {
         list = await window.host.fs.list('media:' + src.id, '', { recursive: !!src.recursive });
       } catch (e) { missing.push(src.label || src.id); continue; }
       var batch = [];
       list.forEach(function (f) {
-        if (f.isDir || !IMG_RE.test(f.name)) return;
-        if (re && re.test(f.name)) return;
         var rel = f.rel || f.name;
+        if (f.isDir || !accept(f.name, rel)) return;
         batch.push({
           id: src.id + '/' + rel, cat: src.id, rel: rel,
           title: titleFromName(f.name), name: f.name, mtime: f.mtime || 0, size: f.size || 0

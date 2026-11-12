@@ -8,6 +8,7 @@ const store = require('./store');
 const settings = require('./settings');
 const { t } = require('./i18n');
 const { safeName } = require('./pathutil');
+const datafiles = require('./datafiles');
 
 const bus = new EventEmitter();
 const dir = () => path.join(app.getPath('userData'), 'campaigns');
@@ -82,19 +83,73 @@ function switchTo(id) {
   emitChanged();
   return c;
 }
+/** Копия настроек: новая кампания с новой пустой папкой данных; карты/«Показ»/журналы — те же папки. Текущей не становится. */
+function duplicate(id) {
+  const src = get(id);
+  if (!src) throw new Error('CAMPAIGN_NOT_FOUND');
+  const name = t('campaigns.copyName', { name: src.name });
+  let data = defaultDataDir(name), n = 2;
+  while (fs.existsSync(data)) data = defaultDataDir(name) + ' ' + (n++);
+  const c = defaults({
+    name, folders: Object.assign({}, src.folders, { data }),
+    media: JSON.parse(JSON.stringify(src.media || [])),
+    battlelog: Object.assign({}, src.battlelog), playerWindow: Object.assign({}, src.playerWindow),
+    prefs: JSON.parse(JSON.stringify(src.prefs || {})),
+  });
+  fs.mkdirSync(c.folders.data, { recursive: true });
+  store.writeJson(fileOf(c.id), c);
+  return c;
+}
 function remove(id, opts) {
   const c = get(id);
   if (!c) return;
   const wasCurrent = settings.get().currentCampaign === id;
   try { fs.unlinkSync(fileOf(id)); } catch (_) {}
   if (opts && opts.deleteData && c.folders && c.folders.data) {
-    try { fs.rmSync(c.folders.data, { recursive: true, force: true }); } catch (_) {}
+    const d = path.resolve(c.folders.data);
+    const shared = list().some((o) => o.folders && o.folders.data && path.resolve(o.folders.data) === d);
+    const unsafe = path.parse(d).root === d || [app.getPath('home'), app.getPath('documents'), app.getPath('desktop')].some((p) => path.resolve(p) === d);
+    if (!shared && !unsafe) {
+      bus.emit('data-removed', d);
+      try { datafiles.removeOwned(d); } catch (_) {}   // только файлы приложения; чужое не трогаем, папку — лишь если опустела
+    }
   }
   if (wasCurrent) {
     const rest = list();
     settings.set({ currentCampaign: rest.length ? rest[0].id : null });
     emitChanged();
   }
+}
+
+/**
+ * Смена папки данных кампании. opts: {move, conflict:'overwrite'|'merge'}.
+ * move=true — перенести файлы приложения из старой папки; в новую папку до завершения переноса ничего не пишется.
+ * Если в новой папке уже есть файлы приложения, а conflict не задан — ошибка TARGET_HAS_DATA (вызывающий должен спросить).
+ * Ошибка сохранения кампании после переноса откатывает перенос. kv к этому моменту уже сброшен вызывающим.
+ */
+function relocateData(id, newDir, opts) {
+  const o = typeof opts === 'object' && opts ? opts : { move: !!opts };
+  const c = get(id);
+  if (!c) throw new Error('CAMPAIGN_NOT_FOUND');
+  if (!newDir || typeof newDir !== 'string') throw new Error('DATA_DIR_REQUIRED');
+  const from = c.folders && c.folders.data, to = path.resolve(newDir);
+  if (list().some((x) => x.id !== id && x.folders && x.folders.data && path.resolve(x.folders.data) === to)) throw new Error('DATA_DIR_IN_USE');
+  let moved = 0, skipped = 0, did = false;
+  if (o.move && from && path.resolve(from).toLowerCase() !== to.toLowerCase()) {
+    const shared = list().some((x) => x.id !== id && x.folders && x.folders.data && path.resolve(x.folders.data) === path.resolve(from));
+    if (!shared) {
+      if (!o.conflict && datafiles.inspect(to).owned > 0) throw new Error('TARGET_HAS_DATA');
+      const r = datafiles.moveOwned(from, to, { merge: o.conflict === 'merge' });
+      moved = r.moved; skipped = r.skipped; did = true;
+    }
+  }
+  let r;
+  try { r = update(id, { folders: { data: to } }); }
+  catch (e) {
+    if (did && moved) { try { datafiles.moveOwned(to, from, { merge: false }); } catch (_) {} }
+    throw e;
+  }
+  return Object.assign({}, r, { _moved: moved, _skipped: skipped });
 }
 
 /** Absolute base folder of a root in the current campaign, or null if not set. */
@@ -111,4 +166,4 @@ function rootPath(root, c) {
   return null;
 }
 
-module.exports = { bus, list, get, current, create, update, switchTo, remove, rootPath, defaults, defaultDataDir };
+module.exports = { bus, list, get, current, create, update, switchTo, remove, duplicate, relocateData, emitChanged, rootPath, defaults, defaultDataDir };

@@ -110,7 +110,10 @@
     // библиотека: data/library.tokens.json + (совместимость) «Библиотека токенов.vtt.json» в папке карт; новее по lid побеждает
     getLibrary: async function () {
       var own = [], legacy = [];
-      try { own = libFromJson(await H().fs.readText('data', LIB_FILE)); } catch (e) { own = []; }
+      try {
+        // файла может не быть (новая кампания) — это не ошибка, и не должно попадать в лог
+        if (await H().fs.exists('data', LIB_FILE)) own = libFromJson(await H().fs.readText('data', LIB_FILE));
+      } catch (e) { own = []; }
       try {
         if (await H().fs.exists('maps', LEGACY_LIB_FILE)) legacy = libFromJson(await H().fs.readText('maps', LEGACY_LIB_FILE));
       } catch (e) { legacy = []; }
@@ -136,7 +139,7 @@
       return out;
     },
 
-    loadMapFromEntry: async function (entry) {
+    loadMapFromEntry: async function (entry, opts) {
       var meta = parseMeta(await H().fs.readText('maps', entry.rel));
       var imgName = meta.image || entry.imageName;
       var dir = entry.dir ? entry.dir + '/' : '';
@@ -147,7 +150,10 @@
         rel = sibs[0].rel || (dir + sibs[0].name);
         warn = tr('store.warn.imageSubstituted', { name: imgName, used: sibs[0].name });
       }
-      return buildMap(entry.name, meta, H().fs.url('maps', rel), warn);
+      var url = H().fs.url('maps', rel) + (opts && opts.bust ? '?t=' + Date.now() : '');   // ?t= — обход кэша картинки
+      var map = await buildMap(entry.name, meta, url, warn);
+      map.entryRel = entry.rel; map.imageRel = rel;
+      return map;
     },
 
     // Импорт: пути выбранных/перетащенных файлов -> копия в maps. askImages(имя) -> Promise<absPath[]> если картинку не нашли

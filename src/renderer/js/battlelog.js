@@ -285,25 +285,31 @@
     b.textContent = tr('combat.cbSave') + (n ? ' (' + n + ')' : '');
     b.classList.toggle('primary', !!n);
   }
+  var campId;   // id кампании, для которой ведётся B (undefined — ещё не знаем)
   function setCampaign(c) {
     camp = c || null;
-    if (off()) B = null;
+    var id = camp ? camp.id : null;
+    var switched = campId !== undefined && id !== campId;
+    campId = id;
+    if (off() || switched) B = null;     // при смене кампании бой остаётся в kv прежней кампании и не «переезжает»
     paintBtn();
+    if (switched) checkLeftover().catch(function () { /* ignore */ });
+  }
+  // незакрытый бой с прошлого запуска
+  function checkLeftover() {
+    if (off()) return Promise.resolve();
+    return Promise.resolve(VTT.store.getKV(KV)).then(function (old) {
+      if (!old || !old.entries || !old.entries.length) return;
+      B = old; paintBtn();
+      return promptSave(tr('blog.prompt.leftover', { map: old.map, entries: VTT.i18n.plural(old.entries.length, 'blog.entries') }));
+    });
   }
   function init() {
     var b = document.getElementById('cbSave');
     if (b) b.onclick = function () { save(); };
     var campP = window.host.campaigns.current().then(setCampaign).catch(function () {});
     window.host.campaigns.onChanged(setCampaign);
-    // незакрытый бой с прошлого запуска
-    campP.then(function () {
-      if (off()) return;
-      return Promise.resolve(VTT.store.getKV(KV)).then(function (old) {
-        if (!old || !old.entries || !old.entries.length) return;
-        B = old; paintBtn();
-        return promptSave(tr('blog.prompt.leftover', { map: old.map, entries: VTT.i18n.plural(old.entries.length, 'blog.entries') }));
-      });
-    }).catch(function () { /* ignore */ });
+    campP.then(checkLeftover).catch(function () { /* ignore */ });
     paintBtn();
   }
 
