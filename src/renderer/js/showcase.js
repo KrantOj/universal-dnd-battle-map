@@ -39,6 +39,7 @@
     return !!(a && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName));
   }
   function modalOpen() {
+    if (document.querySelector('.cu-overlay')) return true;
     var ids = ['tokenDlg', 'help', 'picker', 'settingsDlg'];
     for (var i = 0; i < ids.length; i++) { var n = $(ids[i]); if (n && !n.hidden) return true; }
     return !!document.querySelector('.vtt-ui-backdrop');
@@ -95,7 +96,27 @@
   }
 
   // ------------------------------------------------------------------ источники (campaign.media)
+  var campId;
+  function resetForCampaign() {
+    show(null);
+    S.items = []; S.missing = []; S.loaded = false; S.query = ''; S.tab = 'pins'; S.pins = []; S.state = 'none';
+    var q = $('sdSearch'); if (q) q.value = '';
+    loadKv();
+  }
+  function loadKv() {
+    return Promise.all([kvGet('showCaption'), kvGet('showPins'), kvGet('showTab')]).then(function (r) {
+      S.caption = r[0] === true;
+      S.pins = Array.isArray(r[1]) ? r[1].filter(function (x) { return typeof x === 'string'; }) : [];
+      if (typeof r[2] === 'string' && (r[2] === 'pins' || VTT.media.getSources().some(function (t) { return t.id === r[2]; }))) S.tab = r[2];
+      $('sdCaption').checked = S.caption;
+      renderTabs();
+      if (S.loaded) renderGrid();
+    });
+  }
   function setCampaign(c) {
+    var id = c ? c.id : null;
+    if (campId !== undefined && id !== campId) resetForCampaign();
+    campId = id;
     var list = c && Array.isArray(c.media) ? c.media : [];
     VTT.media.setSources(list);
     if (S.tab !== 'pins' && !list.some(function (m) { return m.id === S.tab; })) S.tab = 'pins';
@@ -104,9 +125,9 @@
     if (S.open || S.loaded) { S.loaded = true; scan(); } else { S.state = list.length ? 'ready' : 'none'; }
   }
 
-  async function scan() {
+  async function scan(quiet) {
     if (!VTT.media.getSources().length) { S.state = 'none'; S.items = []; S.missing = []; renderGrid(); return; }
-    S.state = 'scanning'; renderGrid();
+    if (!quiet) { S.state = 'scanning'; renderGrid(); }
     try {
       var r = await VTT.media.scan();
       S.items = r.items || []; S.missing = r.missing || [];
@@ -293,13 +314,10 @@
 
     VTT.sync.onHello(resend);
 
-    campP.then(function () { return Promise.all([kvGet('showCaption'), kvGet('showPins'), kvGet('showTab')]); }).then(function (r) {
-      S.caption = r[0] === true;
-      S.pins = Array.isArray(r[1]) ? r[1].filter(function (x) { return typeof x === 'string'; }) : [];
-      if (typeof r[2] === 'string' && (r[2] === 'pins' || VTT.media.getSources().some(function (t) { return t.id === r[2]; }))) S.tab = r[2];
-      $('sdCaption').checked = S.caption;
-      renderTabs();
-      if (S.loaded) renderGrid();
+    campP.then(loadKv);
+    // живое обновление каталога при изменении папок «Показа» на диске (кнопка ⟳ остаётся)
+    if (host && host.watch) host.watch.onChange(function (ev) {
+      if (ev && ev.kind === 'media' && (S.open || S.loaded)) { S.loaded = true; scan(true); }
     });
     refreshChip();
   }

@@ -114,3 +114,31 @@ body.player #splash { display: flex; position: fixed; inset: 0; z-index: 10; ali
 .libi button { padding: 0 5px; font-size: 13px; }
 #libSearch { width: 100%; box-sizing: border-box; margin: 6px 0; }
 #tfCatRow[hidden] { display: none; }
+
+/* плашка «карта изменилась на диске» (живое обновление папки карт) */
+#reloadBar { position: fixed; top: 52px; left: 50%; transform: translateX(-50%); z-index: 150; display: flex; align-items: center; gap: 10px;
+  background: #1f2a37; border: 1px solid #1f6feb; border-radius: 8px; padding: 8px 12px; box-shadow: 0 4px 16px rgba(0,0,0,.5); }
+#reloadBar[hidden] { display: none; }
+
+/* кампании: выбор, менеджер, экспорт/импорт, отчёт */
+.cu-overlay { z-index: 60; }
+.cu-card { width: min(560px, 94vw); }
+.cu-card.cu-wide { width: min(760px, 96vw); }
+.cu-list { max-height: 50vh; overflow-y: auto; }
+.cu-item { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 8px 10px; }
+.cu-item.sel { border-color: #1f6feb; background: #1f2a37; }
+.cu-name { font-weight: 600; }
+.cu-path { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; direction: rtl; text-align: left; }
+.cu-tag { margin-left: 8px; font-size: 11px; font-weight: 400; color: #3fb950; border: 1px solid #238636; border-radius: 10px; padding: 0 6px; }
+.cu-row { display: flex; align-items: center; gap: 10px; background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+.cu-row.cur { border-color: #238636; }
+.cu-info { flex: 1; min-width: 0; }
+.cu-btns { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.cu-size { margin: 10px 0; padding: 8px 10px; background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; font-size: 13px; }
+.cu-sub { margin: 0 0 8px 24px; }
+.cu-msg { min-height: 1.2em; }
+.cu-msg.err { color: #f85149; }
+.cu-text { width: 100%; box-sizing: border-box; resize: vertical; }
+.cfg-chk.dis { opacity: .5; }
+.card button.danger { color: #ff7b72; border-color: #8a2f2c; }
+.cu-text { background: #0d1117; color: inherit; font: inherit; border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }

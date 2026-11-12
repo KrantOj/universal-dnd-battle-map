@@ -24,6 +24,14 @@ function set(key, value) {
   if (value === null || value === undefined) delete e.data[key]; else e.data[key] = value;
   if (!e.timer) e.timer = setTimeout(() => flushEntry(e), 300);
 }
+/** Сбросить кэш kv (после подмены файла на диске, удаления папки данных). */
+function invalidate(dir) {
+  for (const [file, e] of [...cache]) {
+    if (dir && !require('./pathutil').isInside(dir, file)) continue;
+    if (e.timer) { clearTimeout(e.timer); e.timer = null; }
+    cache.delete(file);
+  }
+}
 function flushAll() { for (const e of cache.values()) if (e.timer) flushEntry(e); }
 
-module.exports = { get, set, flushAll };
+module.exports = { get, set, flushAll, invalidate };

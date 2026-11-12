@@ -197,6 +197,14 @@
     else { im.onload = go; im.onerror = fail; }
   }
 
+  // мастер сменил кампанию: чистый экран до следующей карты
+  function resetAll() {
+    mapKey = ''; map = null; scene = null; lastState = null; pendingState = null; lastBox = '';
+    if (r) { r.setMap(null); r.setScene(null); r.ruler = null; }
+    showItem(null);
+    if (splash) splash.style.display = '';
+  }
+
   function receive(msg) {
     if (!msg || !msg.t) return;
     if (helloTimer && msg.t === 'map') { clearInterval(helloTimer); helloTimer = null; }
@@ -218,6 +226,7 @@
         if (r) { r.pings.push({ x: msg.x, y: msg.y, t0: performance.now() }); r.requestDraw(); }
         break;
       case 'roll': showRoll(msg); break;
+      case 'reset': resetAll(); break;
     }
   }
 

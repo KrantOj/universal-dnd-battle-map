@@ -1,5 +1,7 @@
 'use strict';
 const { app, BrowserWindow } = require('electron');
+const smoke = require('./smoke');
+smoke.early();          // до init логов: smoke подменяет userData
 const logger = require('./log');
 logger.init();
 const protocol = require('./protocol');
@@ -7,9 +9,8 @@ const ipc = require('./ipc');
 const windows = require('./windows');
 const menu = require('./menu');
 const kv = require('./kv');
+const watcher = require('./watcher');
 
-const smoke = require('./smoke');
-smoke.early();
 protocol.registerSchemes();
 
 if (!smoke.enabled && !app.requestSingleInstanceLock()) {
@@ -24,12 +25,13 @@ if (!smoke.enabled && !app.requestSingleInstanceLock()) {
     ipc.register();
     menu.build();
     windows.watchDisplays();
+    watcher.start();
     if (smoke.enabled) smoke.run(windows, require('./campaigns'));
     else windows.createGmWindow();
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) windows.createGmWindow();
     });
   }).catch((e) => logger.log.error('startup failed', e));
-  app.on('before-quit', () => kv.flushAll());
+  app.on('before-quit', () => { kv.flushAll(); watcher.stop(); });
   app.on('window-all-closed', () => app.quit());
 }

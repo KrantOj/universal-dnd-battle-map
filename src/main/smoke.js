@@ -38,6 +38,7 @@ async function run(windows, campaigns) {
     wc.on('console-message', (...a) => {
       const d = (a[0] && typeof a[0] === 'object' && 'level' in a[0]) ? a[0] : { level: a[1], message: a[2], lineNumber: a[3], sourceId: a[4] };
       const lv = d.level;
+      if (String(d.message).indexOf('SMOKE_EXPECTED') >= 0) return;   // ошибки, которые smoke вызывает нарочно (проверка лога)
       if (lv === 'error' || lv === 'warning' || lv === 3 || lv === 2) {
         report.consoleErrors.push({ level: lv, message: d.message, at: `${d.sourceId}:${d.lineNumber}` });
       }
@@ -149,6 +150,7 @@ async function run(windows, campaigns) {
       if (!shown) report.errors.push('showcase: no userfile:// image found in player DOM');
     }, 800);
     await step('end', async () => { await ex("document.getElementById('cbEnd') && document.getElementById('cbEnd').click()"); });
+    await require('./smoke-stage2')({ campaigns, tmp, ex, waitFor, step, sleep });
   } catch (e) {
     report.errors.push('fatal: ' + (e && e.stack || e));
   }

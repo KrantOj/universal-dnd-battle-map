@@ -1,6 +1,6 @@
 'use strict';
 const fs = require('fs');
-const { app, ipcMain, dialog, BrowserWindow } = require('electron');
+const { app, ipcMain, dialog, shell, BrowserWindow } = require('electron');
 const settings = require('./settings');
 const campaigns = require('./campaigns');
 const kv = require('./kv');
@@ -8,10 +8,18 @@ const fsapi = require('./fsapi');
 const scenes = require('./scenes');
 const windows = require('./windows');
 const logger = require('./log');
+const transfer = require('./transfer');
+const report = require('./report');
 
 const allowedSaves = new Set(); // paths returned by dialog.saveFile, consumable by fs.writeAbs once
 
 function parentOf(e) { return BrowserWindow.fromWebContents(e.sender) || undefined; }
+
+function takeSave(p) { if (!allowedSaves.delete(p)) throw new Error('PATH_NOT_ALLOWED'); }
+function labelOf(wc) {
+  const g = windows.getGmWindow(), p = windows.getPlayerWindow();
+  return g && !g.isDestroyed() && g.webContents === wc ? 'gm' : (p && !p.isDestroyed() && p.webContents === wc ? 'player' : 'window');
+}
 
 function register() {
   const h = (ch, fn) => ipcMain.handle(ch, (e, ...a) => fn(e, ...a));
@@ -31,6 +39,26 @@ function register() {
   h('campaigns:update', (e, id, p) => campaigns.update(id, p));
   h('campaigns:switch', (e, id) => campaigns.switchTo(id));
   h('campaigns:remove', (e, id, o) => campaigns.remove(id, o));
+  h('campaigns:duplicate', (e, id) => campaigns.duplicate(id));
+  campaigns.bus.on('data-removed', (d) => kv.invalidate(d));
+
+  h('archive:estimate', (e, inc) => transfer.estimate(inc));
+  h('archive:export', (e, dest, inc) => { takeSave(dest); return transfer.exportCurrent(dest, inc); });
+  h('archive:inspect', (e, file) => transfer.inspect(file));
+  h('archive:import', (e, file, o) => transfer.importFile(file, o));
+
+  h('report:collect', (e, dest, description) => {
+    takeSave(dest);
+    const v = process.versions;
+    const zip = report.build({ logDir: logger.logDir(), description, info: {
+      app: app.getVersion(), electron: v.electron, chrome: v.chrome, node: v.node,
+      os: `${process.platform} ${process.getSystemVersion ? process.getSystemVersion() : ''}`.trim(), arch: process.arch, locale: app.getLocale(), created: new Date().toISOString(),
+    } });
+    fs.writeFileSync(dest, Buffer.from(zip));
+    shell.showItemInFolder(dest);
+    return dest;
+  });
+  h('report:openIssues', () => shell.openExternal(report.ISSUES_URL));
   campaigns.bus.on('changed', (c) => windows.broadcast('campaigns:changed', c));
 
   h('kv:get', (e, k) => kv.get(k));
@@ -76,6 +104,7 @@ function register() {
 
   ipcMain.on('sync:send', (e, msg) => windows.relay(e.sender, msg));
   h('log:openFolder', () => logger.openFolder());
+  ipcMain.on('log:report', (e, rec) => { try { logger.fromRenderer(labelOf(e.sender), rec); } catch (_) {} });
 }
 
 module.exports = { register };

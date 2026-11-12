@@ -45,6 +45,7 @@ function build() {
     {
       label: t('menu.help'),
       submenu: [
+        { label: t('menu.help.report'), click: () => send('report') },
         { label: t('menu.help.logs'), click: () => { logger.openFolder().catch(() => {}); } },
         { label: t('menu.help.about'), click: about },
       ],

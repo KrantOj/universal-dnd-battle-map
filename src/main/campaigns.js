@@ -82,13 +82,36 @@ function switchTo(id) {
   emitChanged();
   return c;
 }
+/** Копия настроек: новая кампания с новой пустой папкой данных; карты/«Показ»/журналы — те же папки. Текущей не становится. */
+function duplicate(id) {
+  const src = get(id);
+  if (!src) throw new Error('CAMPAIGN_NOT_FOUND');
+  const name = t('campaigns.copyName', { name: src.name });
+  let data = defaultDataDir(name), n = 2;
+  while (fs.existsSync(data)) data = defaultDataDir(name) + ' ' + (n++);
+  const c = defaults({
+    name, folders: Object.assign({}, src.folders, { data }),
+    media: JSON.parse(JSON.stringify(src.media || [])),
+    battlelog: Object.assign({}, src.battlelog), playerWindow: Object.assign({}, src.playerWindow),
+    prefs: JSON.parse(JSON.stringify(src.prefs || {})),
+  });
+  fs.mkdirSync(c.folders.data, { recursive: true });
+  store.writeJson(fileOf(c.id), c);
+  return c;
+}
 function remove(id, opts) {
   const c = get(id);
   if (!c) return;
   const wasCurrent = settings.get().currentCampaign === id;
   try { fs.unlinkSync(fileOf(id)); } catch (_) {}
   if (opts && opts.deleteData && c.folders && c.folders.data) {
-    try { fs.rmSync(c.folders.data, { recursive: true, force: true }); } catch (_) {}
+    const d = path.resolve(c.folders.data);
+    const shared = list().some((o) => o.folders && o.folders.data && path.resolve(o.folders.data) === d);
+    const unsafe = path.parse(d).root === d || [app.getPath('home'), app.getPath('documents'), app.getPath('desktop')].some((p) => path.resolve(p) === d);
+    if (!shared && !unsafe) {
+      bus.emit('data-removed', d);
+      try { fs.rmSync(d, { recursive: true, force: true }); } catch (_) {}
+    }
   }
   if (wasCurrent) {
     const rest = list();
@@ -111,4 +134,4 @@ function rootPath(root, c) {
   return null;
 }
 
-module.exports = { bus, list, get, current, create, update, switchTo, remove, rootPath, defaults, defaultDataDir };
+module.exports = { bus, list, get, current, create, update, switchTo, remove, duplicate, emitChanged, rootPath, defaults, defaultDataDir };
