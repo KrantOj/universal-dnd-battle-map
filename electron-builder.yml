@@ -1,0 +1,25 @@
+appId: com.krantoj.udbm
+productName: Universal DnD Battle map
+directories:
+  output: dist
+files:
+  - src/**
+  - package.json
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  artifactName: "${productName} Setup ${version}.exe"
+portable:
+  artifactName: "${productName} ${version} portable.exe"
+publish:
+  provider: github
+  owner: KrantOj
+  repo: universal-dnd-battle-map
