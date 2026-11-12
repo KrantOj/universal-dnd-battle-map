@@ -4,6 +4,7 @@ const path = require('path');
 const campaigns = require('./campaigns');
 const store = require('./store');
 const logger = require('./log');
+const { t } = require('./i18n');
 
 const PRELOAD = path.join(__dirname, '..', 'preload', 'preload.js');
 const APP = 'app://local/';
@@ -139,7 +140,7 @@ function openPlayer() {
   if (isPlayerOpen()) { playerWindow.show(); playerWindow.focus(); return; }
   const win = new BrowserWindow({
     width: 1280, height: 720, show: false, backgroundColor: '#000000',
-    title: 'Universal DnD Battle map — игроки',
+    title: t('player.title'),
     webPreferences: webPrefs(),
   });
   playerWindow = win;

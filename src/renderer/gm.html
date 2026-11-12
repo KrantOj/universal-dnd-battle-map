@@ -16,145 +16,145 @@
 <div id="app">
   <header id="toolbar" class="gm-only">
     <div class="grp">
-      <button id="btnMaps" title="Выбрать карту">📂 Карты</button>
-      <button id="btnImportMapTb" title="Импортировать карту (*.map.json + картинка)">⬇ Импорт карты</button>
-      <button id="btnPlayer" title="Открыть окно игроков на втором экране">🖥 Окно игроков</button>
-      <button id="btnShow" title="Показать игрокам картинку: портрет, герб, карту">🖼 Показ</button>
-      <span id="showChip" class="show-chip" hidden><span class="sc-t"></span><button id="showChipX" title="Вернуть игрокам карту (B)">✕</button></span>
+      <button id="btnMaps" data-i18n-title="toolbar.maps.title" data-i18n="toolbar.maps"></button>
+      <button id="btnImportMapTb" data-i18n-title="toolbar.importMapTb.title" data-i18n="toolbar.importMapTb"></button>
+      <button id="btnPlayer" data-i18n-title="toolbar.player.title" data-i18n="toolbar.player"></button>
+      <button id="btnShow" data-i18n-title="toolbar.show.title" data-i18n="toolbar.show"></button>
+      <span id="showChip" class="show-chip" hidden><span class="sc-t"></span><button id="showChipX" data-i18n-title="toolbar.showChipX.title">✕</button></span>
     </div>
     <div class="grp" id="tools">
-      <button data-tool="select" class="tool active" title="Выбор / движение (V)">✋ Выбор</button>
-      <button data-tool="reveal" class="tool" title="Открыть кистью (R)">🌫 Открыть</button>
-      <button data-tool="hide" class="tool" title="Скрыть кистью (H)">🌑 Скрыть</button>
-      <button data-tool="rect" class="tool" title="Открыть прямоугольником (Shift+R)">▭ Область</button>
-      <button data-tool="doors" class="tool" title="Двери (D)">🚪 Двери</button>
-      <button data-tool="ping" class="tool" title="Пинг (Alt+клик в любом инструменте)">📍 Пинг</button>
+      <button data-tool="select" class="tool active" data-i18n-title="toolbar.tool.select.title" data-i18n="toolbar.tool.select"></button>
+      <button data-tool="reveal" class="tool" data-i18n-title="toolbar.tool.reveal.title" data-i18n="toolbar.tool.reveal"></button>
+      <button data-tool="hide" class="tool" data-i18n-title="toolbar.tool.hide.title" data-i18n="toolbar.tool.hide"></button>
+      <button data-tool="rect" class="tool" data-i18n-title="toolbar.tool.rect.title" data-i18n="toolbar.tool.rect"></button>
+      <button data-tool="doors" class="tool" data-i18n-title="toolbar.tool.doors.title" data-i18n="toolbar.tool.doors"></button>
+      <button data-tool="ping" class="tool" data-i18n-title="toolbar.tool.ping.title" data-i18n="toolbar.tool.ping"></button>
     </div>
-    <div class="grp" id="brushes" title="Размер кисти (1 / 3 / 5)">
-      <span class="lbl">Кисть</span>
+    <div class="grp" id="brushes" data-i18n-title="toolbar.brushes.title">
+      <span class="lbl" data-i18n="toolbar.brush"></span>
       <button data-brush="1" class="brush active">1</button>
       <button data-brush="3" class="brush">3</button>
       <button data-brush="5" class="brush">5</button>
     </div>
     <div class="grp">
-      <button id="btnRevealAll">Открыть всё</button>
-      <button id="btnHideAll">Скрыть всё</button>
-      <button id="btnRevealPlayers" title="Открыть туман там, где сейчас видят все токены партии и союзников">👁 Открыть обзор игроков</button>
+      <button id="btnRevealAll" data-i18n="toolbar.revealAll"></button>
+      <button id="btnHideAll" data-i18n="toolbar.hideAll"></button>
+      <button id="btnRevealPlayers" data-i18n-title="toolbar.revealPlayers.title" data-i18n="toolbar.revealPlayers"></button>
     </div>
     <div class="grp">
-      <span class="lbl">Раунд <b id="roundNum">1</b></span>
-      <button id="btnNewRound" title="Сбросить пройденное и начать новый раунд">Новый раунд ⟳</button>
-      <button id="btnResetRounds" title="Раунд = 1, сбросить пройденное всем токенам">Сбросить раунды</button>
-      <button id="btnClearScene" class="danger" title="Закрыть карту туманом, сбросить раунды и бой, убрать все токены (с двойным подтверждением)">Очистить сцену</button>
+      <span class="lbl"><span data-i18n="toolbar.round"></span> <b id="roundNum">1</b></span>
+      <button id="btnNewRound" data-i18n-title="toolbar.newRound.title" data-i18n="toolbar.newRound"></button>
+      <button id="btnResetRounds" data-i18n-title="toolbar.resetRounds.title" data-i18n="toolbar.resetRounds"></button>
+      <button id="btnClearScene" class="danger" data-i18n-title="toolbar.clearScene.title" data-i18n="toolbar.clearScene"></button>
     </div>
     <div class="grp" id="viewGrp">
-      <span class="lbl">Вид игроков</span>
-      <button data-pview="fit-map" class="pview active">Вся карта</button>
-      <button data-pview="fit-revealed" class="pview">Открытое</button>
-      <button data-pview="gm" class="pview">Как у меня</button>
-      <button id="btnSendView" title="Отправить игрокам мой текущий вид">Отправить мой вид</button>
+      <span class="lbl" data-i18n="toolbar.viewLabel"></span>
+      <button data-pview="fit-map" class="pview active" data-i18n="toolbar.pview.fit-map"></button>
+      <button data-pview="fit-revealed" class="pview" data-i18n="toolbar.pview.fit-revealed"></button>
+      <button data-pview="gm" class="pview" data-i18n="toolbar.pview.gm"></button>
+      <button id="btnSendView" data-i18n-title="toolbar.sendView.title" data-i18n="toolbar.sendView"></button>
     </div>
     <div class="grp right">
-      <button id="btnSettings" title="Настройки кампании">⚙</button>
-      <button id="btnHelp" title="Горячие клавиши (?)">?</button>
-      <button id="btnPanel" title="Свернуть / показать панель">▤</button>
+      <button id="btnSettings" data-i18n-title="toolbar.settings.title">⚙</button>
+      <button id="btnHelp" data-i18n-title="toolbar.help.title">?</button>
+      <button id="btnPanel" data-i18n-title="toolbar.panel.title">▤</button>
     </div>
   </header>
 
   <main id="stage">
     <canvas id="canvas"></canvas>
-    <div id="dropHint">Отпустите файлы <b>*.map.json</b> и <b>*.png</b> сюда — карта будет импортирована</div>
+    <div id="dropHint" data-i18n-html="gm.dropHint"></div>
   </main>
 
   <aside id="panel" class="gm-only">
     <section id="combatSec">
-      <h3>Бой <span id="cbState" class="muted"></span></h3>
+      <h3><span data-i18n="combat.title"></span> <span id="cbState" class="muted"></span></h3>
       <div class="btnrow tight">
-        <button id="cbStart" class="primary" title="Отсортировать по инициативе и начать с первого">▶ Начать бой</button>
-        <button id="cbPrev" title="Предыдущий ход" hidden>◀</button>
-        <button id="cbNext" class="primary" title="Следующий ход (N)" hidden>Следующий ход (N) ▶</button>
-        <button id="cbEnd" title="Закончить бой" hidden>■ Конец</button>
+        <button id="cbStart" class="primary" data-i18n-title="combat.cbStart.title" data-i18n="combat.cbStart"></button>
+        <button id="cbPrev" hidden data-i18n-title="combat.cbPrev.title">◀</button>
+        <button id="cbNext" class="primary" hidden data-i18n-title="combat.cbNext.title" data-i18n="combat.cbNext"></button>
+        <button id="cbEnd" hidden data-i18n-title="combat.cbEnd.title" data-i18n="combat.cbEnd"></button>
       </div>
       <div class="btnrow tight">
-        <button id="cbSave" title="Сохранить заметку о бое: кто участвовал, кто кого убил, кто сколько урона получил">💾 Сохранить бой</button>
+        <button id="cbSave" data-i18n-title="combat.cbSave.title" data-i18n="combat.cbSave"></button>
       </div>
-      <label class="row">Источник урона <select id="cbSrc" title="Кто наносит урон: от него считаются нанесённый урон и убийства"><option value="auto">по ходу (чей ход)</option></select></label>
+      <label class="row"><span data-i18n="combat.src"></span> <select id="cbSrc" data-i18n-title="combat.cbSrc.title"><option value="auto" data-i18n="combat.cbSrc.opt.auto"></option></select></label>
       <div class="btnrow tight">
-        <button id="cbRoll" title="Бросить d20 + модификатор всем без инициативы (Shift — всем заново)">🎲 Бросить инициативу</button>
-        <button id="cbSort" title="Отсортировать по убыванию инициативы">⇅ Сортировать</button>
-        <button id="cbClear" title="Убрать инициативу у всех">Сбросить</button>
+        <button id="cbRoll" data-i18n-title="combat.cbRoll.title" data-i18n="combat.cbRoll"></button>
+        <button id="cbSort" data-i18n-title="combat.cbSort.title" data-i18n="combat.cbSort"></button>
+        <button id="cbClear" data-i18n-title="combat.cbClear.title" data-i18n="common.reset"></button>
       </div>
-      <label class="row chk"><input type="checkbox" id="cbQueue"> Очередь ходов на экране игроков</label>
+      <label class="row chk"><input type="checkbox" id="cbQueue"> <span data-i18n="combat.queue"></span></label>
       <div id="cbTracker" class="list"></div>
     </section>
     <section id="diceSec">
-      <h3>Кубики</h3>
-      <div class="dice-btns" id="diceBtns" title="Клик добавляет кубик в формулу"></div>
+      <h3 data-i18n="dice.title"></h3>
+      <div class="dice-btns" id="diceBtns" data-i18n-title="dice.diceBtns.title"></div>
       <div class="dice-row">
-        <button id="diceAdv" title="Бросок d20 с преимуществом (2d20, берётся больший)">Преим.</button>
-        <button id="diceDis" title="Бросок d20 с помехой (2d20, берётся меньший)">Помеха</button>
-        <button id="diceMinus" title="Модификатор −1">−1</button>
-        <button id="dicePlus" title="Модификатор +1">+1</button>
+        <button id="diceAdv" data-i18n-title="dice.diceAdv.title" data-i18n="dice.diceAdv"></button>
+        <button id="diceDis" data-i18n-title="dice.diceDis.title" data-i18n="dice.diceDis"></button>
+        <button id="diceMinus" data-i18n-title="dice.diceMinus.title">−1</button>
+        <button id="dicePlus" data-i18n-title="dice.dicePlus.title">+1</button>
       </div>
       <div class="dice-row">
-        <input id="diceExpr" type="text" placeholder="Нажимайте кубики или пишите: 2d6+3, 2d20kh1+5" autocomplete="off" spellcheck="false">
-        <button id="diceReset" title="Очистить формулу">✕</button>
-        <button id="diceGo" class="primary">Бросить</button>
+        <input id="diceExpr" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="dice.diceExpr.placeholder">
+        <button id="diceReset" data-i18n-title="dice.diceReset.title">✕</button>
+        <button id="diceGo" class="primary" data-i18n="dice.diceGo"></button>
       </div>
       <div class="dice-row">
-        <label class="chk"><input type="checkbox" id="diceShow"> Показывать игрокам</label>
-        <button id="diceClear" title="Очистить журнал">Очистить</button>
+        <label class="chk"><input type="checkbox" id="diceShow"> <span data-i18n="dice.show"></span></label>
+        <button id="diceClear" data-i18n-title="dice.diceClear.title" data-i18n="common.clear"></button>
       </div>
       <div id="diceLog"></div>
     </section>
     <section id="cnSec">
-      <h3>Счётчики</h3>
+      <h3 data-i18n="counters.title"></h3>
       <div id="cnList" class="list"></div>
       <div class="cn-form">
-        <input id="cnName" type="text" placeholder="Название (факел, концентрация…)" maxlength="40" autocomplete="off">
+        <input id="cnName" type="text" maxlength="40" autocomplete="off" data-i18n-placeholder="counters.cnName.placeholder">
         <div class="cn-row">
-          <input id="cnVal" type="number" value="10" min="0" title="Начальное значение">
-          <select id="cnTick" title="Меняется само при новом раунде">
-            <option value="0">не меняется</option><option value="-1">−1 каждый раунд</option><option value="1">+1 каждый раунд</option>
+          <input id="cnVal" type="number" value="10" min="0" data-i18n-title="counters.cnVal.title">
+          <select id="cnTick" data-i18n-title="counters.cnTick.title">
+            <option value="0" data-i18n="counters.cnTick.opt.0"></option><option value="-1" data-i18n="counters.cnTick.opt.-1"></option><option value="1" data-i18n="counters.cnTick.opt.1"></option>
           </select>
         </div>
         <div class="cn-row">
-          <select id="cnTok" title="К какому токену относится"><option value="">Ни к кому</option></select>
-          <button id="cnAdd" class="primary">+ Счётчик</button>
+          <select id="cnTok" data-i18n-title="counters.cnTok.title"><option value="" data-i18n="counters.cnTok.none"></option></select>
+          <button id="cnAdd" class="primary" data-i18n="counters.cnAdd"></button>
         </div>
       </div>
     </section>
     <section>
-      <h3>Токены на карте <span id="tokCount" class="muted"></span></h3>
+      <h3><span data-i18n="panel.tokensTitle"></span> <span id="tokCount" class="muted"></span></h3>
       <div id="tokList" class="list"></div>
-      <button id="btnNewToken" class="wide primary">+ Токен</button>
+      <button id="btnNewToken" class="wide primary" data-i18n="panel.newToken"></button>
     </section>
     <section>
-      <h3>Библиотека</h3>
+      <h3 data-i18n="panel.libTitle"></h3>
       <div class="btnrow tight">
-        <button id="btnPlaceParty" title="Затем клик по карте — партия встанет вокруг клетки">Поставить партию</button>
-        <button id="btnLibExport">Экспорт библиотеки</button>
-        <button id="btnLibImport">Импорт библиотеки</button>
+        <button id="btnPlaceParty" data-i18n-title="panel.placeParty.title" data-i18n="panel.placeParty"></button>
+        <button id="btnLibExport" data-i18n="panel.libExport"></button>
+        <button id="btnLibImport" data-i18n="panel.libImport"></button>
       </div>
       <input type="file" id="fileLib" accept=".json,application/json" hidden>
-      <input id="libSearch" type="search" class="wide" placeholder="Поиск: имя или категория…">
+      <input id="libSearch" type="search" class="wide" data-i18n-placeholder="panel.libSearch.placeholder">
       <div id="libList" class="list"></div>
-      <div class="muted small" id="libEmpty">Пусто. «В библиотеку» в меню токена (ПКМ).</div>
+      <div class="muted small" id="libEmpty" data-i18n="panel.libEmpty"></div>
     </section>
     <section>
-      <h3>Настройки</h3>
-      <label class="row">Диагонали
-        <select id="setDiag"><option value="5">5 фт (все)</option><option value="5-10-5">5-10-5</option></select>
+      <h3 data-i18n="panel.settingsTitle"></h3>
+      <label class="row"><span data-i18n="panel.diag"></span>
+        <select id="setDiag"><option value="5" data-i18n="panel.setDiag.opt.5"></option><option value="5-10-5">5-10-5</option></select>
       </label>
-      <label class="row chk"><input type="checkbox" id="setAuto"> Автооткрытие тумана</label>
-      <label class="row chk"><input type="checkbox" id="setGridGM"> Сетка у мастера</label>
-      <label class="row chk"><input type="checkbox" id="setGridPl"> Сетка у игроков</label>
-      <label class="row chk"><input type="checkbox" id="setLabGM"> Подписи у мастера</label>
-      <label class="row chk"><input type="checkbox" id="setLabPl"> Подписи у игроков</label>
-      <label class="row chk"><input type="checkbox" id="setRuler"> Линейка видна игрокам</label>
+      <label class="row chk"><input type="checkbox" id="setAuto"> <span data-i18n="panel.auto"></span></label>
+      <label class="row chk"><input type="checkbox" id="setGridGM"> <span data-i18n="panel.gridGm"></span></label>
+      <label class="row chk"><input type="checkbox" id="setGridPl"> <span data-i18n="panel.gridPl"></span></label>
+      <label class="row chk"><input type="checkbox" id="setLabGM"> <span data-i18n="panel.labGm"></span></label>
+      <label class="row chk"><input type="checkbox" id="setLabPl"> <span data-i18n="panel.labPl"></span></label>
+      <label class="row chk"><input type="checkbox" id="setRuler"> <span data-i18n="panel.ruler"></span></label>
       <div class="btnrow">
-        <button id="btnExport">Экспорт сцены</button>
-        <button id="btnImport">Импорт сцены</button>
+        <button id="btnExport" data-i18n="panel.export"></button>
+        <button id="btnImport" data-i18n="panel.import"></button>
       </div>
       <input type="file" id="fileScene" accept=".json,application/json" hidden>
     </section>
@@ -164,10 +164,10 @@
     <div class="sd-head">
       <div class="sd-tabs" id="sdTabs"></div>
       <div class="sd-tools">
-        <input id="sdSearch" type="search" placeholder="Поиск…" autocomplete="off">
-        <label class="sd-cap" title="Показывать название внизу экрана игроков"><input type="checkbox" id="sdCaption"> Подпись игрокам</label>
-        <button id="sdRescan" title="Пересканировать папку">⟳</button>
-        <button id="sdClose" title="Закрыть панель (Esc)">✕</button>
+        <input id="sdSearch" type="search" autocomplete="off" data-i18n-placeholder="show.sdSearch.placeholder">
+        <label class="sd-cap" data-i18n-title="show.caption.title"><input type="checkbox" id="sdCaption"> <span data-i18n="show.caption"></span></label>
+        <button id="sdRescan" data-i18n-title="show.sdRescan.title">⟳</button>
+        <button id="sdClose" data-i18n-title="show.sdClose.title">✕</button>
       </div>
     </div>
     <div class="sd-body" id="sdBody"></div>
@@ -176,34 +176,34 @@
   <footer id="status" class="gm-only"><span id="stCell">—</span><span id="stDrag"></span><span id="stMsg"></span></footer>
 </div>
 
-<div id="splash">Ожидание мастера…</div>
+<div id="splash" data-i18n="common.splash"></div>
 
 <!-- выбор карты -->
 <div id="picker" class="overlay gm-only" hidden>
   <div class="card">
-    <h2>Карты боя</h2>
+    <h2 data-i18n="picker.title"></h2>
     <div class="btnrow">
-      <button id="btnPickDir" class="primary">Выбрать папку карт</button>
-      <button id="btnImportMap">Импорт карты…</button>
-      <button id="btnPickShow" title="Без боевой карты: показывать игрокам портреты, гербы и карты">🖼 Только показ</button>
+      <button id="btnPickDir" class="primary" data-i18n="picker.pickDir"></button>
+      <button id="btnImportMap" data-i18n="picker.importMap"></button>
+      <button id="btnPickShow" data-i18n-title="picker.pickShow.title" data-i18n="picker.pickShow"></button>
     </div>
     <div id="dirName" class="muted small"></div>
     <div id="mapList" class="list"></div>
-    <div class="muted small">Можно перетащить на окно файлы <b>*.map.json</b> и соответствующий <b>png</b> — они скопируются в папку карт.</div>
+    <div class="muted small" data-i18n-html="picker.dropNote"></div>
     <div id="pickerMsg" class="err"></div>
-    <div class="btnrow end"><button id="btnPickerClose">Закрыть</button></div>
+    <div class="btnrow end"><button id="btnPickerClose" data-i18n="common.close"></button></div>
   </div>
 </div>
 
 <!-- настройки кампании -->
 <div id="settingsDlg" class="overlay gm-only" hidden>
   <div class="card">
-    <h2>Настройки</h2>
+    <h2 data-i18n="settings.title"></h2>
     <div id="setBody"></div>
     <div id="setMsg" class="muted small"></div>
     <div class="btnrow end">
-      <button id="btnWizardAgain" title="Запустить мастер и создать новую кампанию">Новая кампания…</button>
-      <button id="btnSettingsClose" class="primary">Закрыть</button>
+      <button id="btnWizardAgain" data-i18n-title="settings.wizardAgain.title" data-i18n="settings.wizardAgain"></button>
+      <button id="btnSettingsClose" class="primary" data-i18n="common.close"></button>
     </div>
   </div>
 </div>
@@ -212,38 +212,38 @@
 <datalist id="catList"></datalist>
 <div id="tokenDlg" class="overlay gm-only" hidden>
   <form class="card" id="tokForm" autocomplete="off">
-    <h2 id="tokTitle">Новый токен</h2>
+    <h2 id="tokTitle" data-i18n="tokdlg.titleNew"></h2>
     <div class="grid2">
-      <label>Имя<input id="tfName" required maxlength="40"></label>
-      <label>Метка (≤3)<input id="tfLabel" maxlength="3"></label>
-      <label>Тип
+      <label><span data-i18n="tokdlg.name"></span><input id="tfName" required maxlength="40"></label>
+      <label><span data-i18n="tokdlg.label"></span><input id="tfLabel" maxlength="3"></label>
+      <label><span data-i18n="tokdlg.kind"></span>
         <select id="tfKind">
-          <option value="pc">Игрок</option><option value="ally">Союзник</option>
-          <option value="enemy">Враг</option><option value="neutral">Нейтральный</option>
+          <option value="pc" data-i18n="token.kind.pc"></option><option value="ally" data-i18n="token.kind.ally"></option>
+          <option value="enemy" data-i18n="token.kind.enemy"></option><option value="neutral" data-i18n="token.kind.neutral"></option>
         </select>
       </label>
-      <label>Цвет<input id="tfColor" type="color" value="#238636"></label>
-      <label>Размер
+      <label><span data-i18n="tokdlg.color"></span><input id="tfColor" type="color" value="#238636"></label>
+      <label><span data-i18n="tokdlg.size"></span>
         <select id="tfSize">
-          <option value="1">Средний (1×1)</option><option value="2">Большой (2×2)</option>
-          <option value="3">Огромный (3×3)</option><option value="4">Громадный (4×4)</option>
+          <option value="1" data-i18n="tokdlg.tfSize.opt.1"></option><option value="2" data-i18n="tokdlg.tfSize.opt.2"></option>
+          <option value="3" data-i18n="tokdlg.tfSize.opt.3"></option><option value="4" data-i18n="tokdlg.tfSize.opt.4"></option>
         </select>
       </label>
-      <label>Скорость, фт<input id="tfSpeed" type="number" min="0" step="5" value="30"></label>
-      <label>Обзор, фт<input id="tfVision" type="number" min="0" step="5" value="60"></label>
-      <label>Макс. HP<input id="tfMaxHp" type="number" min="0" step="1" placeholder="не задано"></label>
-      <label>КД (класс доспеха)<input id="tfAc" type="number" min="0" step="1" placeholder="не задано"></label>
-      <label>Команда<select id="tfTeam"><option value="0">По типу (партия — 1, остальные — 2)</option><option value="1">Команда 1</option><option value="2">Команда 2</option><option value="3">Команда 3</option><option value="4">Команда 4</option></select></label>
-      <label>Модификатор инициативы<input id="tfInitMod" type="number" step="1" value="0"></label>
-      <label>Картинка<input id="tfImage" type="file" accept="image/*"></label>
-      <label id="tfCatRow">Категория<input id="tfCat" list="catList" maxlength="40" placeholder="Без категории"></label>
+      <label><span data-i18n="tokdlg.speed"></span><input id="tfSpeed" type="number" min="0" step="5" value="30"></label>
+      <label><span data-i18n="tokdlg.vision"></span><input id="tfVision" type="number" min="0" step="5" value="60"></label>
+      <label><span data-i18n="tokdlg.maxHp"></span><input id="tfMaxHp" type="number" min="0" step="1" data-i18n-placeholder="tokdlg.tfMaxHp.placeholder"></label>
+      <label><span data-i18n="tokdlg.ac"></span><input id="tfAc" type="number" min="0" step="1" data-i18n-placeholder="tokdlg.tfAc.placeholder"></label>
+      <label><span data-i18n="tokdlg.team"></span><select id="tfTeam"><option value="0" data-i18n="tokdlg.tfTeam.opt.0"></option><option value="1" data-i18n="tokdlg.tfTeam.opt.1"></option><option value="2" data-i18n="tokdlg.tfTeam.opt.2"></option><option value="3" data-i18n="tokdlg.tfTeam.opt.3"></option><option value="4" data-i18n="tokdlg.tfTeam.opt.4"></option></select></label>
+      <label><span data-i18n="tokdlg.initMod"></span><input id="tfInitMod" type="number" step="1" value="0"></label>
+      <label><span data-i18n="tokdlg.image"></span><input id="tfImage" type="file" accept="image/*"></label>
+      <label id="tfCatRow"><span data-i18n="tokdlg.category"></span><input id="tfCat" list="catList" maxlength="40" data-i18n-placeholder="tokdlg.tfCat.placeholder"></label>
     </div>
-    <div class="imgrow"><canvas id="tfPreview" width="64" height="64"></canvas><button type="button" id="tfImgClear">Убрать картинку</button></div>
-    <label class="row chk"><input type="checkbox" id="tfHidden"> Скрыт от игроков</label>
-    <label class="row chk" id="tfLibRow"><input type="checkbox" id="tfLib"> Сохранить в библиотеку</label>
+    <div class="imgrow"><canvas id="tfPreview" width="64" height="64"></canvas><button type="button" id="tfImgClear" data-i18n="tokdlg.imgClear"></button></div>
+    <label class="row chk"><input type="checkbox" id="tfHidden"> <span data-i18n="tokdlg.hidden"></span></label>
+    <label class="row chk" id="tfLibRow"><input type="checkbox" id="tfLib"> <span data-i18n="tokdlg.toLibrary"></span></label>
     <div class="btnrow end">
-      <button type="button" id="tfCancel">Отмена</button>
-      <button type="submit" class="primary" id="tfOk">Создать</button>
+      <button type="button" id="tfCancel" data-i18n="common.cancel"></button>
+      <button type="submit" class="primary" id="tfOk" data-i18n="tokdlg.ok.create"></button>
     </div>
   </form>
 </div>
@@ -252,44 +252,46 @@
 
 <div id="help" class="overlay gm-only" hidden>
   <div class="card">
-    <h2>Горячие клавиши</h2>
+    <h2 data-i18n="help.title"></h2>
     <table class="keys">
-      <tr><td>V</td><td>Выбор / движение</td></tr>
-      <tr><td>R</td><td>Открыть кистью</td></tr>
-      <tr><td>H</td><td>Скрыть кистью</td></tr>
-      <tr><td>Shift+R</td><td>Открыть прямоугольником</td></tr>
-      <tr><td>D</td><td>Двери (клик рядом с дверью)</td></tr>
-      <tr><td>1 / 3 / 5</td><td>Размер кисти</td></tr>
-      <tr><td>Alt+клик</td><td>Пинг на карте (виден игрокам)</td></tr>
-      <tr><td>Перетаскивание токена</td><td>Линейка; Shift — свободное перемещение</td></tr>
-      <tr><td>Стрелки</td><td>Сдвиг выбранного токена на клетку</td></tr>
-      <tr><td>Ctrl+Z</td><td>Отменить перемещение</td></tr>
-      <tr><td>Delete</td><td>Удалить выбранный токен</td></tr>
-      <tr><td>ПКМ по токену</td><td>Статус, скрыть, редактировать, дублировать…</td></tr>
-      <tr><td>Колесо</td><td>Масштаб к курсору</td></tr>
-      <tr><td>Пробел+ЛКМ / СКМ / ПКМ-перетаскивание</td><td>Панорама (тяните с зажатой кнопкой)</td></tr>
-      <tr><td>ПКМ без движения по токену</td><td>Меню токена (в т. ч. «В библиотеку»)</td></tr>
-      <tr><td>👁 Открыть обзор игроков</td><td>Открыть туман по обзору всех токенов партии и союзников</td></tr>
-      <tr><td>Сбросить раунды</td><td>Раунд = 1, пройденное у всех токенов обнуляется</td></tr>
-      <tr><td>Поставить партию</td><td>Клик по карте — все шаблоны игроков встанут рядом</td></tr>
-      <tr><td>Библиотека</td><td>Хранится в папке данных кампании; экспорт/импорт — в файл</td></tr>
-      <tr><td>🖼 Показ</td><td>Панель картинок (портреты, гербы, карты): клик — показать игрокам, повторный клик — убрать</td></tr>
-      <tr><td>B</td><td>Вернуть игрокам карту (убрать показ)</td></tr>
-      <tr><td>N</td><td>Следующий ход в бою (в конце круга — новый раунд)</td></tr>
-      <tr><td>Бой</td><td>🎲 у токена или «Бросить инициативу», затем «Начать бой». Поле «−5 / +5» — урон и лечение: HP ≤ 0 сам ставит статус</td></tr>
-      <tr><td>Кубики</td><td>Формулы: 2d6+3, 4d6dl1 (отбросить младший), 2d20kh1 (старший). Клик по записи в журнале — показать игрокам</td></tr>
-      <tr><td>Счётчики</td><td>Факел, концентрация, заряды: могут уменьшаться на 1 каждый раунд</td></tr>
-      <tr><td>0</td><td>Вписать карту в окно</td></tr>
-      <tr><td>Esc</td><td>Отмена (размещение, перетаскивание, меню)</td></tr>
-      <tr><td>?</td><td>Эта подсказка</td></tr>
+      <tr><td>V</td><td data-i18n="help.row01.desc"></td></tr>
+      <tr><td>R</td><td data-i18n="help.row02.desc"></td></tr>
+      <tr><td>H</td><td data-i18n="help.row03.desc"></td></tr>
+      <tr><td>Shift+R</td><td data-i18n="help.row04.desc"></td></tr>
+      <tr><td>D</td><td data-i18n="help.row05.desc"></td></tr>
+      <tr><td>1 / 3 / 5</td><td data-i18n="help.row06.desc"></td></tr>
+      <tr><td data-i18n="help.row07.key"></td><td data-i18n="help.row07.desc"></td></tr>
+      <tr><td data-i18n="help.row08.key"></td><td data-i18n="help.row08.desc"></td></tr>
+      <tr><td data-i18n="help.row09.key"></td><td data-i18n="help.row09.desc"></td></tr>
+      <tr><td>Ctrl+Z</td><td data-i18n="help.row10.desc"></td></tr>
+      <tr><td>Delete</td><td data-i18n="help.row11.desc"></td></tr>
+      <tr><td data-i18n="help.row12.key"></td><td data-i18n="help.row12.desc"></td></tr>
+      <tr><td data-i18n="help.row13.key"></td><td data-i18n="help.row13.desc"></td></tr>
+      <tr><td data-i18n="help.row14.key"></td><td data-i18n="help.row14.desc"></td></tr>
+      <tr><td data-i18n="help.row15.key"></td><td data-i18n="help.row15.desc"></td></tr>
+      <tr><td data-i18n="help.row16.key"></td><td data-i18n="help.row16.desc"></td></tr>
+      <tr><td data-i18n="help.row17.key"></td><td data-i18n="help.row17.desc"></td></tr>
+      <tr><td data-i18n="help.row18.key"></td><td data-i18n="help.row18.desc"></td></tr>
+      <tr><td data-i18n="help.row19.key"></td><td data-i18n="help.row19.desc"></td></tr>
+      <tr><td data-i18n="help.row20.key"></td><td data-i18n="help.row20.desc"></td></tr>
+      <tr><td>B</td><td data-i18n="help.row21.desc"></td></tr>
+      <tr><td>N</td><td data-i18n="help.row22.desc"></td></tr>
+      <tr><td data-i18n="help.row23.key"></td><td data-i18n="help.row23.desc"></td></tr>
+      <tr><td data-i18n="help.row24.key"></td><td data-i18n="help.row24.desc"></td></tr>
+      <tr><td data-i18n="help.row25.key"></td><td data-i18n="help.row25.desc"></td></tr>
+      <tr><td>0</td><td data-i18n="help.row26.desc"></td></tr>
+      <tr><td>Esc</td><td data-i18n="help.row27.desc"></td></tr>
+      <tr><td>?</td><td data-i18n="help.row28.desc"></td></tr>
     </table>
-    <div class="muted small">В окне игроков: двойной клик или F — полный экран.</div>
-    <div class="btnrow end"><button id="btnHelpClose">Закрыть</button></div>
+    <div class="muted small" data-i18n="help.note"></div>
+    <div class="btnrow end"><button id="btnHelpClose" data-i18n="common.close"></button></div>
   </div>
 </div>
 
 <div id="toast" hidden></div>
 
+<script src="locales/ru.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/geometry.js"></script>
 <script src="js/movement.js"></script>
 <script src="js/dice.js"></script>

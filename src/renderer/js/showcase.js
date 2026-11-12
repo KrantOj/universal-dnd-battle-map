@@ -2,8 +2,9 @@
 (function () {
   'use strict';
   var VTT = (window.VTT = window.VTT || {});
+  var tr = VTT.i18n.t;
 
-  var PINS_TAB = { cat: 'pins', label: '★ Сессия' };
+  var PINS_TAB = { cat: 'pins', label: tr('show.pinsTab') };
   function tabs() {
     return [PINS_TAB].concat(VTT.media.getSources().map(function (s) { return { cat: s.id, label: s.label || s.id }; }));
   }
@@ -66,7 +67,7 @@
     }
     S.current = { item: item };
     refreshChip(); markCurrent();
-    if (!VTT.sync.isOpen()) { toast('Откройте окно игроков'); return; }
+    if (!VTT.sync.isOpen()) { toast(tr('show.toast.openPlayer')); return; }
     transmit();
   }
 
@@ -156,22 +157,22 @@
     body.textContent = '';
 
     if (S.state === 'none') {
-      body.appendChild(msgBlock('Категории картинок не настроены. Добавьте папки с портретами, гербами, картами в настройках.', 'Настройки…', openSettings));
+      body.appendChild(msgBlock(tr('show.noCategories'), tr('common.settings'), openSettings));
       return;
     }
-    if (S.state === 'scanning') { body.appendChild(msgBlock('Сканирую папку…')); return; }
+    if (S.state === 'scanning') { body.appendChild(msgBlock(tr('show.scanning'))); return; }
     if (S.state === 'error') {
-      body.appendChild(msgBlock('Ошибка чтения папки: ' + S.errMsg, 'Настройки…', openSettings));
+      body.appendChild(msgBlock(tr('show.err.read', { msg: S.errMsg }), tr('common.settings'), openSettings));
       return;
     }
 
     var list = visibleItems();
     if (S.missing.length && S.tab !== 'pins') {
-      body.appendChild(el('div', 'sd-note', 'Не найдено: ' + S.missing.join(', ')));
+      body.appendChild(el('div', 'sd-note', tr('show.missing', { list: S.missing.join(', ') })));
     }
     if (!list.length) {
-      var txt = S.query ? 'Ничего не найдено.' :
-        (S.tab === 'pins' ? 'Пока пусто. Нажмите ☆ на миниатюре, чтобы закрепить картинку в «Сессии».' : 'В этой категории нет картинок.');
+      var txt = S.query ? tr('show.nothing') :
+        (S.tab === 'pins' ? tr('show.emptyPins') : tr('show.emptyCat'));
       body.appendChild(el('div', 'sd-note', txt));
       return;
     }
@@ -187,7 +188,7 @@
       card.appendChild(el('div', 'sd-title', it.title));
       card.title = it.title;
       var star = el('button', 'sd-star' + (isPinned(it.id) ? ' on' : ''), isPinned(it.id) ? '★' : '☆');
-      star.title = isPinned(it.id) ? 'Убрать из «Сессии»' : 'Закрепить в «Сессии»';
+      star.title = isPinned(it.id) ? tr('show.unpin.title') : tr('show.pin.title');
       star.onclick = function (e) { e.stopPropagation(); togglePin(it.id); };
       card.appendChild(star);
       card.onclick = function () {

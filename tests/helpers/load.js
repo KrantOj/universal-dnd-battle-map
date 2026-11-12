@@ -5,7 +5,7 @@ const path = require('path');
 const vm = require('vm');
 
 const JS_DIR = path.join(__dirname, '..', '..', 'src', 'renderer', 'js');
-const DEFAULT_FILES = ['geometry.js', 'movement.js', 'dice.js'];
+const DEFAULT_FILES = ['../locales/ru.js', 'i18n.js', 'geometry.js', 'movement.js', 'dice.js'];
 
 function load(files = DEFAULT_FILES) {
   const sandbox = { console };

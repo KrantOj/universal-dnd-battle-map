@@ -9,6 +9,7 @@
 (function () {
   'use strict';
   var VTT = (window.VTT = window.VTT || {});
+  var tr = VTT.i18n.t;
 
   var B = null;            // текущий бой
   var KV = 'pendingBattle';
@@ -20,7 +21,7 @@
   function S() { return VTT.gm._state; }
   function toast(m, ms) { try { A().toast(m, ms); } catch (e) { /* ignore */ } }
   function pad(n) { return (n < 10 ? '0' : '') + n; }
-  function mapName() { var m = S().map; return m ? (m.title || m.name || 'Карта') : 'Карта'; }
+  function mapName() { var m = S().map; return m ? (m.title || m.name || tr('blog.defaultMap')) : tr('blog.defaultMap'); }
   function round() { var s = S().scene; return s ? s.round : 1; }
   function isParty(kind) { return kind === 'pc' || kind === 'ally'; }
   // команда 1–4: задана на токене, иначе партия (pc) — 1, остальные — 2
@@ -61,7 +62,7 @@
   function onStart() {
     return (async function () {
       if (off()) return;
-      if (B && B.ended && hasData()) await promptSave('Предыдущий бой не сохранён. Сохранить его перед началом нового?');
+      if (B && B.ended && hasData()) await promptSave(tr('blog.prompt.prevUnsaved'));
       ensure(); B.ended = null;
       var s = S().scene;
       if (s) s.tokens.forEach(reg);
@@ -104,7 +105,8 @@
   }
 
   // ------------------------------------------------------------------ расчёт и текст заметки
-  var STATUS = { ok: 'в строю', dead: 'убит', unconscious: 'без сознания', incapacitated: 'недееспособен' };
+  var STATUS_KEYS = ['ok', 'dead', 'unconscious', 'incapacitated'];
+  function statusName(s) { return STATUS_KEYS.indexOf(s) >= 0 ? tr('token.statusShort.' + s) : s; }
   function stats(b) {
     var st = {};
     Object.keys(b.parts).forEach(function (id) { st[id] = { dmgIn: 0, dmgOut: 0, heal: 0, kills: [] }; });
@@ -113,7 +115,7 @@
         if (st[e.tid]) st[e.tid].dmgIn += e.amt;
         if (e.sid && st[e.sid]) st[e.sid].dmgOut += e.amt;
       } else if (e.k === 'heal') { if (st[e.tid]) st[e.tid].heal += e.amt; }
-      else if (e.k === 'kill' && e.sid && st[e.sid]) st[e.sid].kills.push(e.tn + (e.how === 'unconscious' ? ' (без сознания)' : ''));
+      else if (e.k === 'kill' && e.sid && st[e.sid]) st[e.sid].kills.push(e.tn + (e.how === 'unconscious' ? ' (' + tr('token.statusShort.unconscious') + ')' : ''));
     });
     return st;
   }
@@ -127,45 +129,51 @@
     b.entries.forEach(function (e) { if (e.r > maxR) maxR = e.r; });
     var mins = Math.max(0, Math.round((end - b.started) / 60000));
     var tn = function (i) { return b.parts[i].team || 2; };
-    ids.sort(function (x, y) { return (tn(x) - tn(y)) || String(b.parts[x].name).localeCompare(b.parts[y].name, 'ru'); });
+    ids.sort(function (x, y) { return (tn(x) - tn(y)) || String(b.parts[x].name).localeCompare(b.parts[y].name, VTT.i18n.lang); });
     var byTeam = {};
     ids.forEach(function (i) { (byTeam[tn(i)] = byTeam[tn(i)] || []).push(i); });
-    var teamLine = Object.keys(byTeam).map(function (k) { return 'команда ' + k + ': ' + byTeam[k].length; }).join(', ');
+    var teamLine = Object.keys(byTeam).map(function (k) { return tr('blog.teamCount', { team: k, n: byTeam[k].length }); }).join(', ');
     var L = [];
     L.push('---');
-    L.push('тип: бой');
-    L.push('карта: ' + b.map);
-    L.push('номер: ' + num);
-    L.push('дата: ' + two(new Date(b.started)));
-    L.push('раундов: ' + maxR);
-    L.push('длительность_мин: ' + mins);
-    L.push('завершён: ' + (b.ended ? 'да' : 'нет (сохранён во время боя)'));
+    L.push(tr('blog.fm.type'));
+    L.push(tr('blog.fm.map', { map: b.map }));
+    L.push(tr('blog.fm.num', { num: num }));
+    L.push(tr('blog.fm.date', { date: two(new Date(b.started)) }));
+    L.push(tr('blog.fm.rounds', { n: maxR }));
+    L.push(tr('blog.fm.minutes', { n: mins }));
+    L.push(tr('blog.fm.finished', { v: b.ended ? tr('blog.fm.yes') : tr('blog.fm.noSaved') }));
     L.push('---');
     L.push('');
-    L.push('# Бой: ' + b.map + ' ' + num + ' (' + two(new Date(b.started)).replace(/-(\d\d)$/, ':$1') + ')');
+    L.push(tr('blog.title', { map: b.map, num: num, date: two(new Date(b.started)).replace(/-(\d\d)$/, ':$1') }));
     L.push('');
-    L.push('**Раундов:** ' + maxR + ' · **Длительность:** ~' + mins + ' мин · **Участников:** ' + ids.length + ' (' + teamLine + ')');
+    L.push(tr('blog.summary', { rounds: maxR, mins: mins, count: ids.length, teams: teamLine }));
     L.push('');
-    L.push('## Участники');
+    L.push(tr('blog.h.participants'));
     L.push('');
-    L.push('| Участник | Команда | КД | Макс. HP | Получил урона | Нанёс урона | Исцелён | Убил | Исход |');
+    L.push(tr('blog.table.header'));
     L.push('|---|---|---|---|---|---|---|---|---|');
     ids.forEach(function (id) {
       var p = b.parts[id], s = st[id];
       L.push('| ' + esc(p.name) + ' | ' + (p.team || 2) + ' | ' + (p.ac || '—') + ' | ' + (p.maxHp || '—') + ' | ' +
-        s.dmgIn + ' | ' + s.dmgOut + ' | ' + s.heal + ' | ' + s.kills.length + ' | ' + (p.removed && p.status === 'ok' ? 'убран со сцены' : (STATUS[p.status] || p.status)) + ' |');
+        s.dmgIn + ' | ' + s.dmgOut + ' | ' + s.heal + ' | ' + s.kills.length + ' | ' + (p.removed && p.status === 'ok' ? tr('blog.outcome.removed') : statusName(p.status)) + ' |');
     });
     L.push('');
-    L.push('## Кто кого убил');
+    L.push(tr('blog.h.kills'));
     L.push('');
     var kills = b.entries.filter(function (e) { return e.k === 'kill'; });
-    if (!kills.length) L.push('Никто не погиб и не потерял сознание.');
+    if (!kills.length) L.push(tr('blog.kills.none'));
     kills.forEach(function (e) {
       var kt = e.sid && b.parts[e.sid] ? b.parts[e.sid].team : null, vt = b.parts[e.tid] ? b.parts[e.tid].team : null;
-      L.push('- Раунд ' + e.r + ': ' + (e.sn ? '**' + e.sn + '**' + (kt ? ' (К' + kt + ')' : '') : '_источник не указан_') + ' → **' + e.tn + '**' + (vt ? ' (К' + vt + ')' : '') + ' — ' + (e.how === 'unconscious' ? 'без сознания' : 'убит') + (kt && vt && kt === vt ? ' ⚠ своя команда' : ''));
+      L.push(tr('blog.kills.line', {
+        r: e.r,
+        src: e.sn ? '**' + e.sn + '**' + (kt ? tr('blog.teamTag', { n: kt }) : '') : tr('blog.noSource.md'),
+        victim: '**' + e.tn + '**' + (vt ? tr('blog.teamTag', { n: vt }) : ''),
+        how: tr('token.statusShort.' + (e.how === 'unconscious' ? 'unconscious' : 'dead')),
+        friendly: kt && vt && kt === vt ? tr('blog.friendlyFire') : ''
+      }));
     });
     L.push('');
-    L.push('## Урон по участникам');
+    L.push(tr('blog.h.damage'));
     L.push('');
     var any = false;
     ids.forEach(function (id) {
@@ -173,26 +181,29 @@
       if (!s.dmgIn) return;
       any = true;
       var bySrc = {};
-      b.entries.forEach(function (e) { if (e.k === 'dmg' && e.tid === id) { var k = e.sn || 'источник не указан'; bySrc[k] = (bySrc[k] || 0) + e.amt; } });
-      L.push('- **' + b.parts[id].name + '** (К' + (b.parts[id].team || 2) + ') — получил ' + s.dmgIn + (b.parts[id].maxHp ? ' из ' + b.parts[id].maxHp + ' HP' : '') + ': ' +
-        Object.keys(bySrc).map(function (k) { return k + ' ' + bySrc[k]; }).join(', '));
+      b.entries.forEach(function (e) { if (e.k === 'dmg' && e.tid === id) { var k = e.sn || tr('blog.noSource'); bySrc[k] = (bySrc[k] || 0) + e.amt; } });
+      L.push(tr('blog.dmg.line', {
+        name: b.parts[id].name, team: b.parts[id].team || 2, amt: s.dmgIn,
+        of: b.parts[id].maxHp ? tr('blog.dmg.of', { max: b.parts[id].maxHp }) : '',
+        list: Object.keys(bySrc).map(function (k) { return k + ' ' + bySrc[k]; }).join(', ')
+      }));
     });
-    if (!any) L.push('Урон не фиксировался.');
+    if (!any) L.push(tr('blog.dmg.none'));
     L.push('');
-    L.push('## Хронология');
+    L.push(tr('blog.h.chronology'));
     L.push('');
     b.entries.forEach(function (e) {
-      var pre = '- [' + clock(e.t) + ' · Р' + e.r + '] ', tx = null;
-      if (e.k === 'start') tx = 'Бой начался';
-      else if (e.k === 'end') tx = 'Бой окончен';
-      else if (e.k === 'round') tx = 'Начался раунд ' + e.n;
-      else if (e.k === 'turn') tx = 'Ход: ' + e.tn;
-      else if (e.k === 'dmg') tx = (e.sn || 'Источник не указан') + ' → ' + e.tn + ': урон ' + e.amt + (e.to != null ? ' (HP ' + e.from + ' → ' + e.to + ')' : '');
-      else if (e.k === 'heal') tx = (e.sn ? e.sn + ' → ' : '') + e.tn + ': лечение ' + e.amt + ' (HP ' + e.from + ' → ' + e.to + ')';
-      else if (e.k === 'kill') tx = '☠ ' + e.tn + ' — ' + (e.how === 'unconscious' ? 'без сознания' : 'убит') + (e.sn ? ' (' + e.sn + ')' : '');
-      else if (e.k === 'team') tx = e.tn + ' переведён в команду ' + e.team;
-      else if (e.k === 'status') tx = e.tn + ': статус «' + (STATUS[e.st] || e.st) + '»';
-      else if (e.k === 'removed') tx = e.tn + ' убран со сцены';
+      var pre = tr('blog.chron.prefix', { time: clock(e.t), r: e.r }), tx = null;
+      if (e.k === 'start') tx = tr('blog.ev.start');
+      else if (e.k === 'end') tx = tr('blog.ev.end');
+      else if (e.k === 'round') tx = tr('blog.ev.round', { n: e.n });
+      else if (e.k === 'turn') tx = tr('blog.ev.turn', { name: e.tn });
+      else if (e.k === 'dmg') tx = tr('blog.ev.dmg', { src: e.sn || tr('blog.ev.noSource'), name: e.tn, amt: e.amt, hp: e.to != null ? tr('blog.ev.hpChange', { from: e.from, to: e.to }) : '' });
+      else if (e.k === 'heal') tx = tr('blog.ev.heal', { src: e.sn ? e.sn + ' → ' : '', name: e.tn, amt: e.amt, from: e.from, to: e.to });
+      else if (e.k === 'kill') tx = tr('blog.ev.kill', { name: e.tn, how: tr('token.statusShort.' + (e.how === 'unconscious' ? 'unconscious' : 'dead')), src: e.sn ? ' (' + e.sn + ')' : '' });
+      else if (e.k === 'team') tx = tr('blog.ev.team', { name: e.tn, team: e.team });
+      else if (e.k === 'status') tx = tr('blog.ev.status', { name: e.tn, status: statusName(e.st) });
+      else if (e.k === 'removed') tx = tr('blog.ev.removed', { name: e.tn });
       if (tx) L.push(pre + tx);
     });
     L.push('');
@@ -207,12 +218,12 @@
   async function ensureFolder() {
     if (camp && camp.folders && camp.folders.battlelog) return true;
     var pickIt = await VTT.ui.confirm({
-      title: 'Папка журнала не задана',
-      text: 'Куда сохранять записи боёв? Выберите папку (запомнится в настройках) или сохраните этот файл вручную.',
-      ok: 'Выбрать папку', cancel: 'Сохранить как…'
+      title: tr('blog.folder.title'),
+      text: tr('blog.folder.text'),
+      ok: tr('blog.folder.pick'), cancel: tr('blog.folder.saveAs')
     });
     if (!pickIt) return null;
-    var dir = await window.host.dialog.pickFolder({ title: 'Папка журнала боя' });
+    var dir = await window.host.dialog.pickFolder({ title: tr('blog.folder.pickTitle') });
     if (!dir) return false;
     var c = await window.host.campaigns.update(camp.id, { folders: { battlelog: dir } });
     camp = c || camp;
@@ -236,32 +247,32 @@
       return { saved: true, name: fname, where: camp.folders.battlelog };
     }
     var fn2 = name + ' ' + when + '.md';
-    var p = await window.host.dialog.saveFile({ title: 'Сохранить бой', defaultName: fn2, filters: [{ name: 'Markdown', extensions: ['md'] }] });
+    var p = await window.host.dialog.saveFile({ title: tr('blog.save.title'), defaultName: fn2, filters: [{ name: 'Markdown', extensions: ['md'] }] });
     if (!p) return { saved: false };
     await window.host.fs.writeAbs(p, bom(buildNote(b, 1)));
-    return { saved: true, name: p.split(/[\\/]/).pop(), where: 'выбранный файл' };
+    return { saved: true, name: p.split(/[\\/]/).pop(), where: tr('blog.where.file') };
   }
 
   // сохранить текущий бой; true — записан
   async function save() {
-    if (!hasData()) { toast('Журнал боя пуст — сохранять нечего'); return false; }
+    if (!hasData()) { toast(tr('blog.toast.empty')); return false; }
     var b = B;
     try {
       var r = await writeNote(b);
       if (!r.saved) return false;
-      toast('Бой сохранён: ' + r.name + ' → ' + r.where, 6000);
+      toast(tr('blog.toast.saved', { name: r.name, where: r.where }), 6000);
       B = null; persist();
       return true;
     } catch (e) {
       console.warn('save battle', e);
-      VTT.ui.alert({ title: 'Бой не сохранён', text: 'Не удалось записать заметку: ' + (e && e.message || e) + '. Журнал боя остался в памяти — попробуйте ещё раз.' });
+      VTT.ui.alert({ title: tr('blog.err.title'), text: tr('blog.err.text', { msg: e && e.message || e }) });
       return false;
     }
   }
   // спросить «сохранить / не сохранять»; после ответа журнал очищается (кроме неудачной записи)
   async function promptSave(text) {
     if (!hasData()) { B = null; persist(); return; }
-    var yes = await VTT.ui.confirm({ title: 'Сохранить бой?', text: text || 'Есть несохранённый бой.', ok: 'Сохранить', cancel: 'Не сохранять' });
+    var yes = await VTT.ui.confirm({ title: tr('blog.prompt.title'), text: text || tr('blog.prompt.default'), ok: tr('common.save'), cancel: tr('blog.prompt.dontSave') });
     if (yes) { await save(); }
     else { B = null; persist(); }
   }
@@ -271,7 +282,7 @@
     var b = document.getElementById('cbSave'); if (!b) return;
     b.hidden = off();
     var n = B ? B.entries.length : 0;
-    b.textContent = '💾 Сохранить бой' + (n ? ' (' + n + ')' : '');
+    b.textContent = tr('combat.cbSave') + (n ? ' (' + n + ')' : '');
     b.classList.toggle('primary', !!n);
   }
   function setCampaign(c) {
@@ -290,7 +301,7 @@
       return Promise.resolve(VTT.store.getKV(KV)).then(function (old) {
         if (!old || !old.entries || !old.entries.length) return;
         B = old; paintBtn();
-        return promptSave('С прошлого запуска остался несохранённый бой («' + old.map + '», записей: ' + old.entries.length + '). Сохранить его в заметку?');
+        return promptSave(tr('blog.prompt.leftover', { map: old.map, entries: VTT.i18n.plural(old.entries.length, 'blog.entries') }));
       });
     }).catch(function () { /* ignore */ });
     paintBtn();

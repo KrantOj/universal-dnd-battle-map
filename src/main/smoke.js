@@ -5,6 +5,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { app } = require('electron');
+const i18n = require('./i18n');
 
 const argv = process.argv;
 const enabled = argv.includes('--smoke') || argv.includes('--smoke-wizard');
@@ -86,7 +87,7 @@ async function run(windows, campaigns) {
         if (!t) throw new Error('wizard title empty');
         for (let i = 0; i < 6; i++) { await ex("document.getElementById('wzNext').click()"); await sleep(250); }
         const nextTxt = await ex("document.getElementById('wzNext').textContent");
-        if (!/Создать/.test(nextTxt)) throw new Error('did not reach last wizard step: ' + nextTxt);
+        if (nextTxt !== i18n.t('wizard.btn.create')) throw new Error('did not reach last wizard step: ' + nextTxt);
       });
       clearTimeout(watchdog);
       return finish(report.errors.length || report.consoleErrors.length ? 1 : 0);

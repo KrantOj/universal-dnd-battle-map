@@ -9,6 +9,7 @@
 (function () {
   'use strict';
   var VTT = (window.VTT = window.VTT || {});
+  var tr = VTT.i18n.t;
 
   function $(id) { return document.getElementById(id); }
   function el(tag, cls, text) {
@@ -61,7 +62,7 @@
     var mod = t.initMod || 0;
     var r = VTT.dice.roll('d20' + (mod >= 0 ? '+' : '') + mod);
     t.init = r.total;
-    pushLog(r, 'Инициатива: ' + t.name);
+    pushLog(r, tr('combat.log.initiative', { name: t.name }));
     if (!t.hidden && $('diceShow') && $('diceShow').checked) sendRoll(r, t.name);   // скрытым врагам инициативу игрокам не показываем
     return r;
   }
@@ -72,14 +73,14 @@
       if (t.status === 'dead') return;
       if (all || !hasInit(t)) { rollInit(t); n++; }
     });
-    if (!n) { toast('У всех уже есть инициатива (Shift — перебросить всем)'); return; }
+    if (!n) { toast(tr('combat.toast.allHaveInit')); return; }
     sortOrder();
     A().changed();
-    toast('Брошено инициатив: ' + n);
+    toast(tr('combat.toast.initRolled', { n: n }));
   }
   async function clearInit() {
     var s = sc(); if (!s) return;
-    if (!(await VTT.ui.confirm({ title: 'Сбросить инициативу', text: 'Убрать инициативу у всех и закончить бой?', ok: 'Сбросить' }))) return;
+    if (!(await VTT.ui.confirm({ title: tr('combat.confirm.clearInit.title'), text: tr('combat.confirm.clearInit.text'), ok: tr('common.reset') }))) return;
     s.tokens.forEach(function (t) { delete t.init; });
     if (s.combat.active && VTT.blog) VTT.blog.onEnd();
     s.combat.active = false; s.combat.turnId = null;
@@ -89,7 +90,7 @@
     var s = sc(); if (!s) return;
     sortOrder();
     var first = ordered(s).filter(eligible)[0];
-    if (!first) { toast('Сначала задайте инициативу (🎲 у токена или «Бросить инициативу»)', 3500); return; }
+    if (!first) { toast(tr('combat.toast.needInit'), 3500); return; }
     s.combat.active = true; s.combat.turnId = first.id;
     s.round = 1;
     if (VTT.blog) VTT.blog.onStart();
@@ -97,14 +98,14 @@
     G()._state.undo = [];
     A().changed();
     A().selectToken(first.id, true);
-    toast('Бой начался · ход: ' + first.name);
+    toast(tr('combat.toast.started', { name: first.name }));
   }
   function end() {
     var s = sc(); if (!s || !s.combat.active) return;
     s.combat.active = false; s.combat.turnId = null;
     if (VTT.blog) VTT.blog.onEnd();
     A().changed();
-    toast('Бой окончен');
+    toast(tr('combat.toast.ended'));
   }
   function step(dir) {
     var s = sc(); if (!s) return;
@@ -117,14 +118,14 @@
       var t = full[((j % n) + n) % n];
       if (eligible(t)) { pick = t; break; }
     }
-    if (!pick) { toast('Нет участников с инициативой'); return; }
+    if (!pick) { toast(tr('combat.toast.noParticipants')); return; }
     s.combat.turnId = pick.id;
     if (VTT.blog) VTT.blog.onTurn(pick);
     if (wrapped && dir > 0) A().newRound();
     else if (wrapped && dir < 0 && s.round > 1) { s.round--; A().changed(); }
     else A().changed();
     A().selectToken(pick.id, true);
-    toast('Ход: ' + pick.name);
+    toast(tr('combat.toast.turn', { name: pick.name }));
   }
 
   // ------------------------------------------------------------------ здоровье
@@ -138,18 +139,18 @@
     var sel = $('cbSrc'); if (!sel) return;
     var keep = sel.value;
     sel.textContent = '';
-    [['auto', 'по ходу (чей ход)'], ['none', 'не указан / среда']].forEach(function (o) { var op = el('option', '', o[1]); op.value = o[0]; sel.appendChild(op); });
+    [['auto', tr('combat.cbSrc.opt.auto')], ['none', tr('combat.cbSrc.opt.none')]].forEach(function (o) { var op = el('option', '', o[1]); op.value = o[0]; sel.appendChild(op); });
     if (s) s.tokens.forEach(function (t) { var op = el('option', '', t.name); op.value = t.id; sel.appendChild(op); });
     sel.value = keep; if (sel.value !== keep) sel.value = 'auto';
   }
   function applyHp(t, txt) {
     var m = /^\s*([+\-−=]?)\s*(\d+)\s*$/.exec(String(txt));
-    if (!m) { toast('Здоровье: −5 урон · +5 лечение · 20 или =20 задать'); return false; }
+    if (!m) { toast(tr('combat.toast.hpSyntax')); return false; }
     var sign = m[1] === '−' ? '-' : m[1], n = parseInt(m[2], 10), prev = t.hp;
     var prevEff = prev != null ? prev : (t.maxHp > 0 ? t.maxHp : null);
     if (!(t.maxHp > 0)) {
       if (sign === '' || sign === '=') { t.maxHp = n; t.hp = n; }
-      else { toast('Сначала задайте максимум HP (поле «макс»)'); return false; }
+      else { toast(tr('combat.toast.needMaxHp')); return false; }
     } else if (sign === '' || sign === '=') t.hp = Math.min(t.maxHp, n);
     else if (sign === '+') t.hp = Math.min(t.maxHp, (t.hp == null ? t.maxHp : t.hp) + n);
     else t.hp = Math.max(0, (t.hp == null ? t.maxHp : t.hp) - n);
@@ -157,7 +158,7 @@
     if (t.hp <= 0 && (t.status === 'ok' || t.status === 'incapacitated')) st = isParty(t) ? 'unconscious' : 'dead';
     else if (t.hp > 0 && (prev == null || prev <= 0) && (t.status === 'unconscious' || t.status === 'dead')) st = 'ok';
     if (VTT.blog) VTT.blog.onHp(t, prevEff, t.hp, sign, n, srcToken(), st);
-    if (st) { if (VTT.blog) VTT.blog.mute(true); A().setStatus(t, st); if (VTT.blog) VTT.blog.mute(false); toast(t.name + ': ' + (st === 'dead' ? 'убит' : st === 'unconscious' ? 'без сознания' : 'в строю')); }
+    if (st) { if (VTT.blog) VTT.blog.mute(true); A().setStatus(t, st); if (VTT.blog) VTT.blog.mute(false); toast(tr('combat.toast.statusSet', { name: t.name, status: tr('token.statusShort.' + (st === 'dead' || st === 'unconscious' ? st : 'ok')) })); }
     else A().changed({ noList: true });
     return true;
   }
@@ -173,13 +174,13 @@
     box.textContent = '';
     dlog.forEach(function (e) {
       var row = el('div', 'dl' + (e.r.d20 === 20 ? ' nat20' : e.r.d20 === 1 ? ' nat1' : ''));
-      row.title = 'Клик — показать игрокам';
+      row.title = tr('dice.log.clickToShow');
       row.appendChild(el('b', 'dt', e.r.total));
       var txt = el('div', 'dx');
       txt.appendChild(el('div', 'dh', (e.who ? e.who + ' · ' : '') + e.r.expr));
       txt.appendChild(el('div', 'dd', e.r.text));
       row.appendChild(txt);
-      row.onclick = function () { sendRoll(e.r, e.who); toast('Показано игрокам'); };
+      row.onclick = function () { sendRoll(e.r, e.who); toast(tr('dice.toast.shown')); };
       box.appendChild(row);
     });
   }
@@ -228,7 +229,7 @@
 
   // ------------------------------------------------------------------ счётчики
   function addCounter() {
-    var s = sc(); if (!s) { toast('Сначала откройте карту'); return; }
+    var s = sc(); if (!s) { toast(tr('common.openMapFirst')); return; }
     var name = $('cnName').value.trim();
     if (!name) { $('cnName').focus(); return; }
     s.counters.push({
@@ -245,7 +246,7 @@
     var s = sc(); box.textContent = '';
     var sel = $('cnTok'), keep = sel.value;
     sel.textContent = '';
-    sel.appendChild(el('option', '', 'Ни к кому')).value = '';
+    sel.appendChild(el('option', '', tr('counters.cnTok.none'))).value = '';
     if (s) s.tokens.forEach(function (t) { var o = el('option', '', t.name); o.value = t.id; sel.appendChild(o); });
     sel.value = keep;
     if (!s) return;
@@ -255,8 +256,8 @@
       var l1 = el('div', 'l1');
       l1.appendChild(el('span', 'nm', c.name));
       if (tok) l1.appendChild(el('span', 'tg', tok.name));
-      if (c.perRound) l1.appendChild(el('span', 'tk', (c.perRound < 0 ? '−1' : '+1') + '/раунд'));
-      var x = el('button', '', '✕'); x.title = 'Удалить счётчик';
+      if (c.perRound) l1.appendChild(el('span', 'tk', tr('counters.perRound', { delta: c.perRound < 0 ? '−1' : '+1' })));
+      var x = el('button', '', '✕'); x.title = tr('counters.del.title');
       x.onclick = function () { s.counters = s.counters.filter(function (o) { return o.id !== c.id; }); A().changed({ noList: true }); renderCounters(); };
       l1.appendChild(x);
       var l2 = el('div', 'l2');
@@ -270,7 +271,7 @@
       row.appendChild(l1); row.appendChild(l2);
       box.appendChild(row);
     });
-    if (!s.counters.length) box.appendChild(el('div', 'muted small', 'Нет счётчиков. Например: «Факел» 10, −1 за раунд.'));
+    if (!s.counters.length) box.appendChild(el('div', 'muted small', tr('counters.empty')));
   }
   function onNewRound() {
     var s = sc(); if (!s) return;
@@ -278,7 +279,7 @@
       if (!c.perRound) return;
       var was = c.value;
       c.value = Math.max(0, c.value + c.perRound);
-      if (c.perRound < 0 && was > 0 && c.value === 0) toast('Счётчик «' + c.name + '» истёк', 4000);
+      if (c.perRound < 0 && was > 0 && c.value === 0) toast(tr('counters.toast.expired', { name: c.name }), 4000);
     });
   }
 
@@ -301,14 +302,14 @@
     var l1 = el('div', 'l1');
     l1.appendChild(el('span', 'mk', '▶'));
     var ini = el('input', 'ci'); ini.type = 'text'; ini.value = hasInit(t) ? t.init : ''; ini.placeholder = '—';
-    ini.title = 'Инициатива (число)';
+    ini.title = tr('combat.tracker.init.title');
     ini.onchange = function () {
       var v = parseFloat(String(ini.value).replace(',', '.'));
       if (isFinite(v)) t.init = v; else delete t.init;
       row.classList.toggle('noinit', !hasInit(t));
       A().changed({ noList: true });
     };
-    var dice = el('button', 'cd', '🎲'); dice.title = 'Бросить инициативу d20 + модификатор';
+    var dice = el('button', 'cd', '🎲'); dice.title = tr('combat.tracker.rollInit.title');
     dice.onclick = function () {
       var r = rollInit(t); ini.value = t.init;
       row.classList.remove('noinit');
@@ -322,24 +323,24 @@
     var hp = el('div', 'hp');
     hp.appendChild(el('span', 'hpt'));
     var hb = el('div', 'hpb'); hb.appendChild(document.createElement('i')); hp.appendChild(hb);
-    var dmg = el('input', 'cd2'); dmg.type = 'text'; dmg.placeholder = '−5 / +5'; dmg.title = 'Урон −5, лечение +5, значение 20 или =20';
+    var dmg = el('input', 'cd2'); dmg.type = 'text'; dmg.placeholder = tr('combat.tracker.dmg.placeholder'); dmg.title = tr('combat.tracker.dmg.title');
     dmg.onchange = function () { var v = dmg.value; dmg.value = ''; if (v.trim()) { applyHp(t, v); paintHp(row, t); } };
-    var mx = el('input', 'cx'); mx.type = 'text'; mx.placeholder = 'макс'; mx.title = 'Максимум HP';
+    var mx = el('input', 'cx'); mx.type = 'text'; mx.placeholder = tr('combat.tracker.maxHp.placeholder'); mx.title = tr('combat.tracker.maxHp.title');
     mx.onchange = function () {
       var v = parseInt(mx.value, 10);
       if (v > 0) { var had = t.maxHp > 0; t.maxHp = v; t.hp = had && t.hp != null ? Math.min(t.hp, v) : v; }
       else { delete t.maxHp; delete t.hp; }
       paintHp(row, t); A().changed({ noList: true });
     };
-    var md = el('input', 'cm'); md.type = 'text'; md.placeholder = 'мод'; md.title = 'Модификатор инициативы';
+    var md = el('input', 'cm'); md.type = 'text'; md.placeholder = tr('combat.tracker.mod.placeholder'); md.title = tr('combat.tracker.mod.title');
     md.value = t.initMod ? t.initMod : '';
     md.onchange = function () { t.initMod = parseInt(md.value, 10) || 0; A().changed({ noList: true }); };
-    var ac = el('input', 'ca'); ac.type = 'text'; ac.placeholder = 'КД'; ac.title = 'Класс доспеха (КД)';
+    var ac = el('input', 'ca'); ac.type = 'text'; ac.placeholder = tr('combat.tracker.ac.placeholder'); ac.title = tr('combat.tracker.ac.title');
     ac.value = t.ac > 0 ? t.ac : '';
     ac.onchange = function () { var v = parseInt(ac.value, 10); if (v > 0) t.ac = v; else delete t.ac; A().changed({ noList: true }); };
-    var tm = el('select', 'ct'); tm.title = 'Команда (по умолчанию: партия — 1, остальные — 2)';
+    var tm = el('select', 'ct'); tm.title = tr('combat.tracker.team.title');
     var curTeam = VTT.blog ? VTT.blog.teamOf(t) : (t.team > 0 ? t.team : (t.kind === 'pc' ? 1 : 2));
-    [1, 2, 3, 4].forEach(function (n) { var o = el('option', '', 'К' + n); o.value = n; tm.appendChild(o); });
+    [1, 2, 3, 4].forEach(function (n) { var o = el('option', '', tr('combat.team.short', { n: n })); o.value = n; tm.appendChild(o); });
     tm.value = curTeam;
     tm.onchange = function () { t.team = parseInt(tm.value, 10); A().changed({ noList: true }); if (VTT.blog) VTT.blog.onTeam(t); };
     l2.appendChild(hp); l2.appendChild(dmg); l2.appendChild(mx); l2.appendChild(ac); l2.appendChild(tm); l2.appendChild(md);
@@ -355,13 +356,13 @@
     box.textContent = '';
     renderCounters(); renderSrc(s);
     if (!s) { $('cbState').textContent = ''; return; }
-    $('cbState').textContent = s.combat.active ? '· раунд ' + s.round : '· не начат';
+    $('cbState').textContent = s.combat.active ? tr('combat.state.round', { n: s.round }) : tr('combat.state.idle');
     $('cbQueue').checked = !!(s.settings && s.settings.showQueue);
     $('cbStart').hidden = s.combat.active;
     $('cbNext').hidden = !s.combat.active; $('cbPrev').hidden = !s.combat.active; $('cbEnd').hidden = !s.combat.active;
     var ts = ordered(s);
     ts.forEach(function (t) { box.appendChild(buildRow(t, s)); });
-    if (!ts.length) box.appendChild(el('div', 'muted small', 'Поставьте токены — они появятся здесь.'));
+    if (!ts.length) box.appendChild(el('div', 'muted small', tr('combat.tracker.empty')));
   }
 
   function bind() {
@@ -376,7 +377,7 @@
     var db = $('diceBtns');
     [4, 6, 8, 10, 12, 20, 100].forEach(function (n) {
       var b = document.createElement('button');
-      b.className = 'die'; b.title = 'd' + n + ' — добавить в формулу';
+      b.className = 'die'; b.title = tr('dice.addDie.title', { sides: n });
       b.innerHTML = VTT.dice.svg(n, { size: 30 }) + '<span>d' + n + '</span>';
       b.onclick = function () { addDie(n); };
       db.appendChild(b);
@@ -388,7 +389,7 @@
     $('diceReset').onclick = function () { setExpr('', ''); $('diceExpr').focus(); };
     function formula() {
       var v = $('diceExpr').value.trim();
-      if (!v) { toast('Выберите кубики или введите формулу'); return; }
+      if (!v) { toast(tr('dice.toast.pickDice')); return; }
       doRoll(v);
     }
     $('diceGo').onclick = formula;

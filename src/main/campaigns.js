@@ -6,6 +6,7 @@ const { EventEmitter } = require('events');
 const { app } = require('electron');
 const store = require('./store');
 const settings = require('./settings');
+const { t } = require('./i18n');
 const { safeName } = require('./pathutil');
 
 const bus = new EventEmitter();
@@ -24,13 +25,13 @@ function merge(c, patch) {
 }
 
 function defaultDataDir(name) {
-  return path.join(app.getPath('documents'), 'Universal DnD Battle map', safeName(name || 'Кампания'));
+  return path.join(app.getPath('documents'), 'Universal DnD Battle map', safeName(name || t('campaign.defaultName')));
 }
 
 function defaults(partial) {
   const p = partial || {};
   const now = new Date().toISOString();
-  const name = String(p.name || 'Кампания');
+  const name = String(p.name || t('campaign.defaultName'));
   const c = {
     id: p.id || crypto.randomUUID(),
     name, created: now, updated: now,

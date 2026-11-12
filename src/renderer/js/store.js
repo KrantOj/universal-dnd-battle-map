@@ -2,6 +2,7 @@
 (function () {
   'use strict';
   var VTT = (window.VTT = window.VTT || {});
+  var tr = VTT.i18n.t;
   var H = function () { return window.host; };
 
   var LIB_FILE = 'library.tokens.json';          // в корне data
@@ -20,7 +21,7 @@
     return new Promise(function (resolve, reject) {
       var im = new Image();
       im.onload = function () { resolve(im); };
-      im.onerror = function () { reject(new Error('Не удалось загрузить картинку карты')); };
+      im.onerror = function () { reject(new Error(tr('store.err.mapImage'))); };
       im.src = src;
     });
   }
@@ -46,7 +47,7 @@
 
   function parseMeta(text) {
     var meta = JSON.parse(text);
-    if (!meta || !meta.resolution || !meta.resolution.map_size) throw new Error('Это не файл карты (*.map.json)');
+    if (!meta || !meta.resolution || !meta.resolution.map_size) throw new Error(tr('store.err.notMapFile'));
     return meta;
   }
 
@@ -63,7 +64,7 @@
         : { x: 0, y: 0, width: size.x * ppg, height: size.y * ppg };
       var warning = warn || '';
       if (!warning && (im.naturalWidth !== imageGrid.width || im.naturalHeight !== imageGrid.height)) {
-        warning = 'Картинка не совпадает с сеткой — нужна «' + (meta.image || '… (VTT).png') + '»';
+        warning = tr('store.warn.imageMismatch', { image: meta.image || '… (VTT).png' });
       }
       var map = {
         name: name, title: meta.name || name,
@@ -90,13 +91,13 @@
   function libFromJson(txt) {
     var d = JSON.parse(txt);
     var arr = Array.isArray(d) ? d : d && d.tokens;
-    if (!Array.isArray(arr)) throw new Error('Это не файл библиотеки токенов');
+    if (!Array.isArray(arr)) throw new Error(tr('store.err.notLibrary'));
     return arr;
   }
   function libJson(tokens) { return JSON.stringify({ format: LIB_FORMAT, tokens: tokens }, null, 1); }
 
   async function saveToFile(defaultName, text) {
-    var p = await H().dialog.saveFile({ title: 'Сохранить', defaultName: defaultName, filters: [{ name: 'JSON', extensions: ['json'] }] });
+    var p = await H().dialog.saveFile({ title: tr('common.save'), defaultName: defaultName, filters: [{ name: 'JSON', extensions: ['json'] }] });
     if (!p) return false;
     await H().fs.writeAbs(p, text);
     return true;
@@ -142,9 +143,9 @@
       var rel = imgName ? dir + imgName : '', warn = '';
       if (!rel || !(await H().fs.exists('maps', rel))) {
         var sibs = (await H().fs.list('maps', entry.dir || '', { recursive: false })).filter(function (x) { return !x.isDir && /\.(png|jpe?g|webp)$/i.test(x.name); });
-        if (!sibs.length) throw new Error('Не найдена картинка «' + imgName + '»');
+        if (!sibs.length) throw new Error(tr('store.err.imageNotFound', { name: imgName }));
         rel = sibs[0].rel || (dir + sibs[0].name);
-        warn = 'Картинка «' + imgName + '» не найдена — взята «' + sibs[0].name + '».';
+        warn = tr('store.warn.imageSubstituted', { name: imgName, used: sibs[0].name });
       }
       return buildMap(entry.name, meta, H().fs.url('maps', rel), warn);
     },
@@ -152,7 +153,7 @@
     // Импорт: пути выбранных/перетащенных файлов -> копия в maps. askImages(имя) -> Promise<absPath[]> если картинку не нашли
     importMapFiles: async function (paths, askImages) {
       var json = paths.filter(function (p) { return /\.map\.json$/i.test(p); })[0] || paths.filter(function (p) { return /\.json$/i.test(p); })[0];
-      if (!json) throw new Error('Не выбран файл *.map.json');
+      if (!json) throw new Error(tr('store.err.noMapFile'));
       var rels = await H().fs.importFiles([json], 'maps', '');
       var jsonRel = rels[0];
       var meta = parseMeta(await H().fs.readText('maps', jsonRel));
@@ -178,7 +179,7 @@
     importScene: function (file) {
       return readText(file).then(function (txt) {
         var s = JSON.parse(txt);
-        if (!s || !Array.isArray(s.tokens) || typeof s.fog !== 'string' || !s.map) throw new Error('Это не файл сцены VTT');
+        if (!s || !Array.isArray(s.tokens) || typeof s.fog !== 'string' || !s.map) throw new Error(tr('store.err.notScene'));
         return s;
       });
     },

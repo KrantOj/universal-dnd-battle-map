@@ -2,6 +2,7 @@
 (function () {
   'use strict';
   var VTT = (window.VTT = window.VTT || {});
+  var tr = VTT.i18n.t;
 
   var IMG_RE = /\.(png|jpe?g|webp|gif|svg)$/i;
   var THUMB_H = 220, THUMB_MAXW = 400;
@@ -55,7 +56,7 @@
           title: titleFromName(f.name), name: f.name, mtime: f.mtime || 0, size: f.size || 0
         });
       });
-      batch.sort(function (a, b) { return a.title.localeCompare(b.title, 'ru'); });
+      batch.sort(function (a, b) { return a.title.localeCompare(b.title, VTT.i18n.lang); });
       items = items.concat(batch);
     }
     return { items: items, missing: missing };
@@ -65,7 +66,7 @@
     return new Promise(function (resolve, reject) {
       var im = new Image();
       im.onload = function () { resolve(im); };
-      im.onerror = function () { reject(new Error('Не удалось загрузить картинку')); };
+      im.onerror = function () { reject(new Error(tr('media.err.load'))); };
       im.src = url;
     });
   }

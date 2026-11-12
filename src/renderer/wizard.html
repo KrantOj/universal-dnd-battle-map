@@ -13,20 +13,22 @@
 <div id="wz">
   <div class="card wz-card">
     <div class="wz-head">
-      <h2 id="wzTitle">Первый запуск</h2>
+      <h2 id="wzTitle" data-i18n="wizard.wzTitle"></h2>
       <div id="wzSteps" class="muted small"></div>
     </div>
     <div id="wzBody"></div>
     <div id="wzMsg" class="err"></div>
     <div class="btnrow wz-nav">
-      <button id="wzCancel" hidden>Отмена</button>
-      <button id="wzBack">Назад</button>
+      <button id="wzCancel" hidden data-i18n="common.cancel"></button>
+      <button id="wzBack" data-i18n="wizard.wzBack"></button>
       <span class="wz-spacer"></span>
-      <button id="wzSkip">Пропустить</button>
-      <button id="wzNext" class="primary">Далее</button>
+      <button id="wzSkip" data-i18n="wizard.wzSkip"></button>
+      <button id="wzNext" class="primary" data-i18n="wizard.wzNext"></button>
     </div>
   </div>
 </div>
+<script src="locales/ru.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/cfgui.js"></script>
 <script src="js/wizard.js"></script>

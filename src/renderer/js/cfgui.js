@@ -2,6 +2,7 @@
 (function () {
   'use strict';
   var VTT = (window.VTT = window.VTT || {});
+  var tr = VTT.i18n.t;
 
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -16,22 +17,22 @@
     if (opts.label) row.appendChild(el('div', 'cfg-lbl', opts.label));
     var line = el('div', 'cfg-line');
     var path = el('div', 'cfg-path');
-    var pick = el('button', null, 'Выбрать…');
+    var pick = el('button', null, tr('cfg.pick'));
     pick.type = 'button';
-    var clr = el('button', null, 'Сбросить');
+    var clr = el('button', null, tr('common.reset'));
     clr.type = 'button';
     line.appendChild(path); line.appendChild(pick);
     if (opts.clearable) line.appendChild(clr);
     row.appendChild(line);
     var value = opts.value || null;
     function paint() {
-      path.textContent = value || opts.empty || 'не задана';
+      path.textContent = value || opts.empty || tr('cfg.notSet');
       path.classList.toggle('empty', !value);
       path.title = value || '';
       clr.hidden = !value;
     }
     pick.onclick = function () {
-      window.host.dialog.pickFolder({ title: opts.pickTitle || opts.label || 'Папка', defaultPath: value || undefined }).then(function (p) {
+      window.host.dialog.pickFolder({ title: opts.pickTitle || opts.label || tr('cfg.folder'), defaultPath: value || undefined }).then(function (p) {
         if (!p) return;
         value = p; paint();
         if (opts.onChange) opts.onChange(p);
@@ -53,29 +54,29 @@
       box.textContent = '';
       items.forEach(function (m, i) {
         var row = el('div', 'cfg-mrow');
-        var name = el('input'); name.type = 'text'; name.value = m.label || ''; name.placeholder = 'Название (Портреты, Гербы…)'; name.maxLength = 40;
-        name.onchange = function () { m.label = name.value.trim() || 'Без названия'; fire(); };
-        var path = el('div', 'cfg-path', m.path || 'папка не выбрана');
+        var name = el('input'); name.type = 'text'; name.value = m.label || ''; name.placeholder = tr('cfg.cat.placeholder'); name.maxLength = 40;
+        name.onchange = function () { m.label = name.value.trim() || tr('cfg.cat.noName'); fire(); };
+        var path = el('div', 'cfg-path', m.path || tr('cfg.cat.noFolder'));
         path.classList.toggle('empty', !m.path); path.title = m.path || '';
-        var pick = el('button', null, 'Папка…'); pick.type = 'button';
+        var pick = el('button', null, tr('cfg.cat.folderBtn')); pick.type = 'button';
         pick.onclick = function () {
-          window.host.dialog.pickFolder({ title: 'Папка с картинками: ' + (m.label || ''), defaultPath: m.path || undefined }).then(function (p) {
+          window.host.dialog.pickFolder({ title: tr('cfg.cat.pickTitle', { label: m.label || '' }), defaultPath: m.path || undefined }).then(function (p) {
             if (!p) return;
             m.path = p;
-            if (!m.label) m.label = p.split(/[\\/]/).filter(Boolean).pop() || 'Категория';
+            if (!m.label) m.label = p.split(/[\\/]/).filter(Boolean).pop() || tr('cfg.cat.default');
             render(); fire();
           });
         };
         var rec = el('label', 'cfg-chk'); var cb = el('input'); cb.type = 'checkbox'; cb.checked = !!m.recursive;
         cb.onchange = function () { m.recursive = cb.checked; fire(); };
-        rec.appendChild(cb); rec.appendChild(document.createTextNode(' с подпапками'));
-        var del = el('button', null, '✕'); del.type = 'button'; del.title = 'Убрать категорию';
+        rec.appendChild(cb); rec.appendChild(document.createTextNode(tr('cfg.cat.recursive')));
+        var del = el('button', null, '✕'); del.type = 'button'; del.title = tr('cfg.cat.remove.title');
         del.onclick = function () { items.splice(i, 1); render(); fire(); };
         row.appendChild(name); row.appendChild(path); row.appendChild(pick); row.appendChild(rec); row.appendChild(del);
         box.appendChild(row);
       });
-      if (!items.length) box.appendChild(el('div', 'cfg-note', 'Категорий нет. «Показ» будет пустым — добавьте папки с портретами, гербами, картами.'));
-      var add = el('button', null, '+ Категория'); add.type = 'button';
+      if (!items.length) box.appendChild(el('div', 'cfg-note', tr('cfg.cat.empty')));
+      var add = el('button', null, tr('cfg.cat.add')); add.type = 'button';
       add.onclick = function () { items.push({ id: newMediaId(), label: '', path: '', recursive: false, exclude: null }); render(); };
       box.appendChild(add);
     }
@@ -83,7 +84,7 @@
     return {
       el: box,
       // только заполненные категории (с папкой)
-      get: function () { return items.filter(function (m) { return m.path; }).map(function (m) { return Object.assign({}, m, { label: m.label || 'Категория' }); }); },
+      get: function () { return items.filter(function (m) { return m.path; }).map(function (m) { return Object.assign({}, m, { label: m.label || tr('cfg.cat.default') }); }); },
       set: function (l) { items = (l || []).map(function (m) { return Object.assign({ recursive: false, exclude: null }, m); }); render(); }
     };
   }

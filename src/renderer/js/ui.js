@@ -4,6 +4,7 @@
  */
 (function () {
   var VTT = window.VTT = window.VTT || {};
+  var tr = VTT.i18n.t;
 
   var queue = [];      // ожидающие запросы
   var busy = false;    // открыт ли сейчас диалог
@@ -152,21 +153,21 @@
     confirm: function (opts) {
       return new Promise(function (resolve) {
         enqueue('confirm', normalize(opts, {
-          title: '', text: '', ok: 'OK', cancel: 'Отмена', danger: false
+          title: '', text: '', ok: tr('common.ok'), cancel: tr('common.cancel'), danger: false
         }), resolve);
       });
     },
     alert: function (opts) {
       return new Promise(function (resolve) {
         enqueue('alert', normalize(opts, {
-          title: '', text: '', ok: 'OK'
+          title: '', text: '', ok: tr('common.ok')
         }), resolve);
       });
     },
     prompt: function (opts) {
       return new Promise(function (resolve) {
         enqueue('prompt', normalize(opts, {
-          title: '', text: '', value: '', ok: 'OK', cancel: 'Отмена'
+          title: '', text: '', value: '', ok: tr('common.ok'), cancel: tr('common.cancel')
         }), resolve);
       });
     }

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' app: userfile: data: blob:; img-src 'self' app: userfile: data: blob:; media-src app: userfile: blob:">
-<title>Universal DnD Battle map — игроки</title>
+<title data-i18n="player.title"></title>
 <link rel="stylesheet" href="css/vtt.css">
 <link rel="stylesheet" href="css/ui.css">
 <link rel="stylesheet" href="css/showcase.css">
@@ -18,8 +18,10 @@
   </main>
 </div>
 
-<div id="splash">Ожидание мастера…</div>
+<div id="splash" data-i18n="common.splash"></div>
 
+<script src="locales/ru.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/geometry.js"></script>
 <script src="js/movement.js"></script>
 <script src="js/dice.js"></script>

@@ -2,6 +2,7 @@
 const { Menu, app, dialog } = require('electron');
 const windows = require('./windows');
 const logger = require('./log');
+const { t } = require('./i18n');
 
 function send(action) {
   const w = windows.getGmWindow();
@@ -12,9 +13,9 @@ function about() {
   const w = windows.getGmWindow();
   dialog.showMessageBox(w || undefined, {
     type: 'info',
-    title: 'О программе',
+    title: t('menu.about.title'),
     message: 'Universal DnD Battle map',
-    detail: `Версия ${app.getVersion()}\nElectron ${process.versions.electron}`,
+    detail: t('menu.about.detail', { version: app.getVersion(), electron: process.versions.electron }),
     buttons: ['OK'],
   });
 }
@@ -22,30 +23,30 @@ function about() {
 function build() {
   const template = [
     {
-      label: 'Файл',
+      label: t('menu.file'),
       submenu: [
-        { label: 'Импорт карты…', click: () => send('import-map') },
+        { label: t('menu.file.importMap'), click: () => send('import-map') },
         { type: 'separator' },
-        { label: 'Кампании…', click: () => send('campaigns') },
-        { label: 'Кампания: настройки', click: () => send('settings') },
-        { label: 'Мастер первого запуска', click: () => send('wizard') },
+        { label: t('menu.file.campaigns'), click: () => send('campaigns') },
+        { label: t('menu.file.settings'), click: () => send('settings') },
+        { label: t('menu.file.wizard'), click: () => send('wizard') },
         { type: 'separator' },
-        { label: 'Выход', role: 'quit' },
+        { label: t('menu.file.quit'), role: 'quit' },
       ],
     },
     {
-      label: 'Вид',
+      label: t('menu.view'),
       submenu: [
-        { label: 'Полный экран', role: 'togglefullscreen' },
-        { label: 'Перезагрузить', role: 'reload' },
-        { label: 'Инструменты разработчика', role: 'toggleDevTools' },
+        { label: t('menu.view.fullscreen'), role: 'togglefullscreen' },
+        { label: t('menu.view.reload'), role: 'reload' },
+        { label: t('menu.view.devtools'), role: 'toggleDevTools' },
       ],
     },
     {
-      label: 'Справка',
+      label: t('menu.help'),
       submenu: [
-        { label: 'Папка логов', click: () => { logger.openFolder().catch(() => {}); } },
-        { label: 'О программе', click: about },
+        { label: t('menu.help.logs'), click: () => { logger.openFolder().catch(() => {}); } },
+        { label: t('menu.help.about'), click: about },
       ],
     },
   ];

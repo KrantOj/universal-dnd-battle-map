@@ -10,6 +10,7 @@
 (function () {
   'use strict';
   var VTT = (window.VTT = window.VTT || {});
+  var tr = VTT.i18n.t;
 
   var MAX_COUNT = 100, MAX_SIDES = 1000;
 
@@ -36,12 +37,12 @@
 
   function parse(expr) {
     var n = norm(expr), s = n.s;
-    if (!s) throw new Error('Пустая формула');
+    if (!s) throw new Error(tr('dice.err.empty'));
     var terms = [], re = /([+-]?)(?:(\d*)d(\d+)(?:(kh|kl|dh|dl)(\d*))?|(\d+))/y, pos = 0, m, first = true, advDone = false;
     while (pos < s.length) {
       re.lastIndex = pos;
       m = re.exec(s);
-      if (!m || m.index !== pos || (!first && !m[1])) throw new Error('Не понял формулу рядом с «' + s.slice(pos, pos + 6) + '»');
+      if (!m || m.index !== pos || (!first && !m[1])) throw new Error(tr('dice.err.syntax', { near: s.slice(pos, pos + 6) }));
       first = false;
       pos = re.lastIndex;
       var sign = m[1] === '-' ? -1 : 1;
@@ -51,12 +52,12 @@
       if (n.adv && !advDone && sides === 20 && cnt === 1 && !keep) {
         cnt = 2; keep = { op: n.adv, k: 1 }; advDone = true;
       }
-      if (cnt < 1 || cnt > MAX_COUNT) throw new Error('Кубиков за раз: от 1 до ' + MAX_COUNT);
-      if (sides < 2 || sides > MAX_SIDES) throw new Error('Граней: от 2 до ' + MAX_SIDES);
-      if (keep && (keep.k < 0 || keep.k > cnt)) throw new Error('Нельзя оставить/отбросить ' + keep.k + ' из ' + cnt);
+      if (cnt < 1 || cnt > MAX_COUNT) throw new Error(tr('dice.err.tooManyDice', { max: MAX_COUNT }));
+      if (sides < 2 || sides > MAX_SIDES) throw new Error(tr('dice.err.sides', { max: MAX_SIDES }));
+      if (keep && (keep.k < 0 || keep.k > cnt)) throw new Error(tr('dice.err.keep', { k: keep.k, n: cnt }));
       terms.push({ sign: sign, kind: 'dice', n: cnt, s: sides, keep: keep });
     }
-    if (n.adv && !advDone) throw new Error('adv/dis работает с одиночным d20');
+    if (n.adv && !advDone) throw new Error(tr('dice.err.advDis'));
     return { terms: terms };
   }
 

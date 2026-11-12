@@ -2,13 +2,14 @@
 (function () {
   'use strict';
   var VTT = (window.VTT = window.VTT || {});
+  var tr = VTT.i18n.t;
   var G = function () { return VTT.geometry; };
   var M = function () { return VTT.movement; };
   function $(id) { return document.getElementById(id); }
 
   var KIND_FILL = { pc: '#238636', ally: '#1f6feb', enemy: '#da3633', neutral: '#9e6a03' };
-  var STATUS_NAMES = { ok: 'В норме', unconscious: 'Без сознания', incapacitated: 'Недееспособен', dead: 'Убит' };
-  var KIND_NAMES = { pc: 'Игрок', ally: 'Союзник', enemy: 'Враг', neutral: 'Нейтральный' };
+  var STATUS_NAMES = { ok: tr('token.status.ok'), unconscious: tr('token.status.unconscious'), incapacitated: tr('token.status.incapacitated'), dead: tr('token.status.dead') };
+  var KIND_NAMES = { pc: tr('token.kind.pc'), ally: tr('token.kind.ally'), enemy: tr('token.kind.enemy'), neutral: tr('token.kind.neutral') };
   var STATUS_SYM = { ok: '', unconscious: 'z', incapacitated: '!', dead: '✕' };
 
   var S = {
@@ -147,15 +148,15 @@
     $('roundNum').textContent = sc.round;
     renderList();
     pushMap();
-    if (map.warning) VTT.ui.alert({ title: 'Внимание', text: map.warning });
+    if (map.warning) VTT.ui.alert({ title: tr('common.attention'), text: map.warning });
     S.lastMapName = map.name;
     try { VTT.store.setKV('lastMap', map.name).catch(function () {}); } catch (e) {}
-    setMsg('Карта: ' + (map.title || map.name) + ' · ' + map.cols + '×' + map.rows);
+    setMsg(tr('gm.map.status', { name: map.title || map.name, cols: map.cols, rows: map.rows }));
   }
   function openEntry(en) {
     $('pickerMsg').textContent = '';
     return VTT.store.loadMapFromEntry(en).then(openMap).catch(function (e) {
-      $('pickerMsg').textContent = 'Ошибка загрузки: ' + (e.message || e);
+      $('pickerMsg').textContent = tr('gm.err.load', { msg: e.message || e });
     });
   }
 
@@ -166,23 +167,23 @@
     var list = $('mapList'), hasRoot = !!mapsRoot();
     $('btnPickDir').hidden = hasRoot;
     $('btnImportMap').hidden = false;
-    $('dirName').textContent = hasRoot ? 'Папка карт: ' + mapsRoot() : '';
+    $('dirName').textContent = hasRoot ? tr('picker.dirName', { dir: mapsRoot() }) : '';
     list.textContent = '';
     S.entries = [];
-    if (!hasRoot) { list.textContent = 'Папка карт не выбрана. Выберите папку или импортируйте карту (*.map.json).'; return []; }
-    list.textContent = 'Читаю папку…';
+    if (!hasRoot) { list.textContent = tr('picker.noDir'); return []; }
+    list.textContent = tr('picker.reading');
     try {
       S.entries = await VTT.store.listMaps();
     } catch (e) {
       list.textContent = '';
-      if (!VTT.store.isRootUnset(e)) $('pickerMsg').textContent = 'Не удалось прочитать папку: ' + e.message;
+      if (!VTT.store.isRootUnset(e)) $('pickerMsg').textContent = tr('picker.err.read', { msg: e.message });
       return [];
     }
     list.textContent = '';
-    if (!S.entries.length) list.textContent = 'В папке нет файлов *.map.json';
+    if (!S.entries.length) list.textContent = tr('picker.empty');
     S.entries.forEach(function (en) {
       var b = document.createElement('button');
-      b.textContent = '🗺 ' + en.name + (en.name === S.lastMapName ? '  (последняя)' : '');
+      b.textContent = '🗺 ' + en.name + (en.name === S.lastMapName ? tr('picker.last') : '');
       b.onclick = function () { openEntry(en); };
       list.appendChild(b);
     });
@@ -191,7 +192,7 @@
 
   async function pickMapsDir() {
     try {
-      var dir = await window.host.dialog.pickFolder({ title: 'Папка с картами боя' });
+      var dir = await window.host.dialog.pickFolder({ title: tr('folder.maps.pickTitle') });
       if (!dir || !S.camp) return;
       var c = await window.host.campaigns.update(S.camp.id, { folders: { maps: dir } });
       if (c) S.camp = c;
@@ -205,19 +206,19 @@
     $('pickerMsg').textContent = '';
     try {
       if (!mapsRoot()) {
-        var ok = await VTT.ui.confirm({ title: 'Папка карт не задана', text: 'Импортированные карты копируются в папку карт. Выбрать её сейчас?', ok: 'Выбрать папку', cancel: 'Отмена' });
+        var ok = await VTT.ui.confirm({ title: tr('gm.confirm.noMapsDir.title'), text: tr('gm.confirm.noMapsDir.text'), ok: tr('common.pickFolder'), cancel: tr('common.cancel') });
         if (!ok) return;
         await pickMapsDir();
         if (!mapsRoot()) return;
       }
       var en = await VTT.store.importMapFiles(paths, async function (imgName) {
-        var ok2 = await VTT.ui.confirm({ title: 'Нет картинки', text: 'Рядом с картой не найдена картинка «' + imgName + '». Выбрать её вручную?', ok: 'Выбрать', cancel: 'Пропустить' });
+        var ok2 = await VTT.ui.confirm({ title: tr('gm.imgMissing.title'), text: tr('gm.imgMissing.text', { name: imgName }), ok: tr('gm.imgMissing.ok'), cancel: tr('gm.imgMissing.skip') });
         if (!ok2) return [];
-        return window.host.dialog.pickFiles({ title: 'Картинка карты', filters: [{ name: 'Изображения', extensions: ['png', 'jpg', 'jpeg', 'webp'] }], multi: false });
+        return window.host.dialog.pickFiles({ title: tr('gm.import.image.title'), filters: [{ name: tr('gm.import.images.filter'), extensions: ['png', 'jpg', 'jpeg', 'webp'] }], multi: false });
       });
       await refreshMaps();
       await openEntry(en);
-      toast('Карта импортирована: ' + en.name);
+      toast(tr('gm.toast.mapImported', { name: en.name }));
     } catch (e) {
       $('pickerMsg').textContent = e.message || String(e);
       toast(e.message || String(e), 4000);
@@ -225,8 +226,8 @@
   }
   async function importMapDialog() {
     var paths = await window.host.dialog.pickFiles({
-      title: 'Импорт карты (*.map.json, можно вместе с картинкой)',
-      filters: [{ name: 'Карта боя', extensions: ['json', 'png', 'jpg', 'jpeg', 'webp'] }], multi: true
+      title: tr('gm.import.map.title'),
+      filters: [{ name: tr('gm.import.map.filter'), extensions: ['json', 'png', 'jpg', 'jpeg', 'webp'] }], multi: true
     });
     if (paths && paths.length) await importMapPaths(paths);
   }
@@ -307,7 +308,7 @@
       n++; if (autoReveal(t, true)) ch = true;
     });
     if (ch) changed({ noList: true }); else S.r.requestDraw();
-    toast(n ? (ch ? 'Открыт обзор игроков' : 'Новых клеток нет') : 'На карте нет токенов партии');
+    toast(n ? (ch ? tr('gm.toast.revealed') : tr('gm.toast.noNewCells')) : tr('gm.toast.noParty'));
   }
   function autoRevealAll() { S.scene.tokens.forEach(autoReveal); }
 
@@ -322,19 +323,19 @@
   }
   function undo() {
     var u = S.undo.pop();
-    if (!u) { toast('Нечего отменять'); return; }
+    if (!u) { toast(tr('gm.toast.nothingToUndo')); return; }
     var t = getToken(u.id);
     if (!t) return;
     t.x = u.x; t.y = u.y; t.moved = u.moved;
     changed();
-    toast('Перемещение отменено');
+    toast(tr('gm.toast.moveUndone'));
   }
   function stepSelected(dx, dy, free) {
     var t = selToken(); if (!t) return;
     var p = clampPos(t.x + dx, t.y + dy, t.size || 1);
     if (p.x === t.x && p.y === t.y) return;
     var res = M().findPath(S.map, segs(), { x: t.x, y: t.y }, p, pathOpts(t, free));
-    if (!res.ok) { toast('Туда не пройти'); return; }
+    if (!res.ok) { toast(tr('gm.toast.cantGo')); return; }
     commitMove(t, p.x, p.y, res, free);
   }
 
@@ -359,17 +360,17 @@
       d.res = M().findPath(S.map, segs(), { x: t.x, y: t.y }, p, pathOpts(t, free));
     }
     var res = d.res, rem = Math.max(0, (t.speed || 0) - (t.moved || 0)), color, label;
-    if (free) { color = '#8b949e'; label = Math.round(res.feet) + ' фт · свободно'; }
-    else if (!res.ok) { color = '#f85149'; label = 'нет пути'; }
+    if (free) { color = '#8b949e'; label = tr('gm.ruler.free', { feet: Math.round(res.feet) }); }
+    else if (!res.ok) { color = '#f85149'; label = tr('gm.ruler.noPath'); }
     else {
       color = res.feet <= rem ? '#3fb950' : (res.feet <= rem + (t.speed || 0) ? '#d29922' : '#f85149');
-      label = Math.round(res.feet) + ' фт' + (res.difficult ? ' · труднопроходимая' : '');
+      label = tr('gm.ruler.cost', { feet: Math.round(res.feet) }) + (res.difficult ? tr('gm.ruler.difficultSuffix') : '');
     }
     S.r.ruler = { path: res.path, label: label, color: color, size: t.size || 1, free: free };
     var dh = (res.elevTo || 0) - (res.elevFrom || 0);
     $('stDrag').textContent = res.ok || free
-      ? 'путь ' + Math.round(res.feet) + ' фт · Δвысота ' + (dh > 0 ? '+' : '') + dh + ' фт'
-      : 'нет пути';
+      ? tr('gm.ruler.pathHeight', { feet: Math.round(res.feet), dh: (dh > 0 ? '+' : '') + dh })
+      : tr('gm.ruler.noPath');
     if (!t.hidden && S.scene.settings.rulerToPlayers !== false) VTT.sync.sendRuler(S.r.ruler);
     S.r.requestDraw();
   }
@@ -384,7 +385,7 @@
     var p = { x: d.tx, y: d.ty };
     if (p.x === t.x && p.y === t.y) return;
     var res = M().findPath(S.map, segs(), { x: t.x, y: t.y }, p, pathOpts(t, free));
-    if (!res.ok) { toast('Нет пути в эту клетку'); return; }
+    if (!res.ok) { toast(tr('gm.toast.noPath')); return; }
     commitMove(t, p.x, p.y, res, free);
   }
 
@@ -392,7 +393,7 @@
   function startPlacement(tpl) {
     S.pending = tpl;
     S.r.canvas.style.cursor = 'crosshair';
-    setMsg('Кликните по карте, чтобы поставить «' + tpl.name + '» · Esc — отмена');
+    setMsg(tr('gm.msg.placeToken', { name: tpl.name }));
     S.r.requestDraw();
   }
   function cancelPlacement() {
@@ -443,11 +444,11 @@
     return lid ? S.scene.tokens.filter(function (t) { return t.lid === lid; })[0] || null : null;
   }
   function startParty() {
-    if (!S.map) { toast('Сначала откройте карту'); return; }
-    if (!S.lib.some(function (l) { return l.kind === 'pc'; })) { toast('В библиотеке нет шаблонов партии'); return; }
+    if (!S.map) { toast(tr('common.openMapFirst')); return; }
+    if (!S.lib.some(function (l) { return l.kind === 'pc'; })) { toast(tr('gm.toast.noPartyTemplates')); return; }
     cancelPlacement();
     S.party = true; S.r.canvas.style.cursor = 'crosshair';
-    setMsg('Кликните по карте — партия встанет вокруг клетки · Esc — отмена');
+    setMsg(tr('gm.msg.placeParty'));
   }
   function placeParty(cx, cy) {
     cancelPlacement();
@@ -463,9 +464,9 @@
       autoReveal(t); placed++;
     });
     changed();
-    var msg = 'Партия: поставлено ' + placed;
-    if (skipped.length) msg += ' · уже на карте: ' + skipped.join(', ');
-    if (failed.length) msg += ' · нет места: ' + failed.join(', ');
+    var msg = tr('gm.party.placed', { n: placed });
+    if (skipped.length) msg += tr('gm.party.skipped', { list: skipped.join(', ') });
+    if (failed.length) msg += tr('gm.party.failed', { list: failed.join(', ') });
     toast(msg, 4500);
   }
   function duplicate(t) {
@@ -478,10 +479,10 @@
     S.scene.tokens.push(c);
     S.sel = c.id; S.r.selectedId = c.id;
     changed();
-    toast('Создан «' + c.name + '»');
+    toast(tr('gm.toast.created', { name: c.name }));
   }
   async function removeToken(t) {
-    if (!(await VTT.ui.confirm({ title: 'Удалить токен', text: 'Удалить токен «' + t.name + '»?', ok: 'Удалить', danger: true }))) return;
+    if (!(await VTT.ui.confirm({ title: tr('gm.confirm.delToken.title'), text: tr('gm.confirm.delToken.text', { name: t.name }), ok: tr('common.delete'), danger: true }))) return;
     if (VTT.blog) VTT.blog.onRemoved(t);
     S.scene.tokens = S.scene.tokens.filter(function (x) { return x.id !== t.id; });
     VTT.tokensDraw.forget(t.id);
@@ -530,20 +531,20 @@
       Object.assign(tpl, { name: baseOf(t.name), label: t.label, color: t.color, kind: t.kind, size: t.size,
         speed: t.speed, vision: t.vision, image: t.image || null, maxHp: t.maxHp || 0, ac: t.ac || 0, team: t.team || 0, initMod: t.initMod || 0, updated: Date.now() });
       libChanged();
-      toast('Шаблон обновлён');
+      toast(tr('gm.toast.templateUpdated'));
     } else {
       tpl = toTemplate(t);
       t.lid = tpl.lid;
       S.lib.push(tpl);
       libChanged();
       scheduleSave();
-      toast('«' + baseOf(t.name) + '» добавлен в библиотеку');
+      toast(tr('gm.toast.addedToLib', { name: baseOf(t.name) }));
     }
   }
   function placeFromLib(tpl) {
-    if (!S.map) { toast('Сначала откройте карту'); return; }
+    if (!S.map) { toast(tr('common.openMapFirst')); return; }
     var ex = tpl.kind === 'pc' ? onMapByLid(tpl.lid) : null;
-    if (ex) { selectToken(ex.id, true); toast('«' + tpl.name + '» уже на карте — выбран'); return; }
+    if (ex) { selectToken(ex.id, true); toast(tr('gm.toast.alreadyOnMap', { name: tpl.name })); return; }
     S.party = false;
     startPlacement(Object.assign({}, tpl));
   }
@@ -574,8 +575,8 @@
   function openTokenDialog(mode, token) {
     dlg.mode = mode; dlg.token = token || null;
     var t = token || { name: '', label: '', color: KIND_FILL.pc, kind: 'pc', size: 1, speed: 30, vision: 60, image: null, hidden: false };
-    $('tokTitle').textContent = mode === 'new' ? 'Новый токен' : 'Редактировать токен';
-    $('tfOk').textContent = mode === 'new' ? 'Создать' : 'Сохранить';
+    $('tokTitle').textContent = mode === 'new' ? tr('tokdlg.titleNew') : tr('tokdlg.titleEdit');
+    $('tfOk').textContent = mode === 'new' ? tr('tokdlg.ok.create') : tr('common.save');
     $('tfName').value = t.name; $('tfLabel').value = t.label; $('tfKind').value = t.kind;
     $('tfColor').value = t.color; $('tfSize').value = String(t.size || 1);
     $('tfSpeed').value = t.speed; $('tfVision').value = t.vision; $('tfHidden').checked = !!t.hidden;
@@ -584,7 +585,7 @@
     dlg.colorTouched = mode !== 'new'; dlg.labelTouched = mode !== 'new';
     $('tfLibRow').hidden = mode !== 'new'; $('tfLib').checked = false;
     $('tfCat').value = t.category || ''; $('tfCatRow').hidden = mode === 'edit'; fillCatList();
-    if (mode === 'tpl') { $('tokTitle').textContent = 'Редактировать шаблон'; $('tfOk').textContent = 'Сохранить'; $('tfHidden').checked = false; }
+    if (mode === 'tpl') { $('tokTitle').textContent = tr('tokdlg.titleTpl'); $('tfOk').textContent = tr('common.save'); $('tfHidden').checked = false; }
     $('tokenDlg').hidden = false;
     drawPreview();
     setTimeout(function () { $('tfName').focus(); }, 0);
@@ -619,7 +620,7 @@
     $('tokForm').onsubmit = function (e) {
       e.preventDefault();
       var data = {
-        name: $('tfName').value.trim() || 'Токен', label: $('tfLabel').value.trim().slice(0, 3),
+        name: $('tfName').value.trim() || tr('token.defaultName'), label: $('tfLabel').value.trim().slice(0, 3),
         kind: $('tfKind').value, color: $('tfColor').value, size: parseInt($('tfSize').value, 10) || 1,
         speed: Math.max(0, parseInt($('tfSpeed').value, 10) || 0), vision: Math.max(0, parseInt($('tfVision').value, 10) || 0),
         image: dlg.image || null, hidden: $('tfHidden').checked,
@@ -639,7 +640,7 @@
       } else if (dlg.mode === 'tpl' && dlg.token) {
         Object.assign(dlg.token, data, { hidden: false, updated: Date.now() });
         libChanged();
-        toast('Шаблон обновлён');
+        toast(tr('gm.toast.templateUpdated'));
       } else if (dlg.token) {
         var t = dlg.token;
         var p = clampPos(t.x, t.y, data.size);
@@ -663,7 +664,7 @@
       var l1 = document.createElement('div'); l1.className = 'l1';
       var dot = document.createElement('span'); dot.className = 'dot s-' + t.status; dot.textContent = STATUS_SYM[t.status];
       var nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = t.name; nm.title = t.name;
-      var mv = document.createElement('span'); mv.className = 'mv'; mv.textContent = Math.round(t.moved || 0) + '/' + t.speed + ' фт';
+      var mv = document.createElement('span'); mv.className = 'mv'; mv.textContent = tr('gm.token.moved', { moved: Math.round(t.moved || 0), speed: t.speed });
       l1.appendChild(dot); l1.appendChild(nm); l1.appendChild(mv);
       var l2 = document.createElement('div'); l2.className = 'l2';
       var sel = document.createElement('select');
@@ -672,9 +673,9 @@
       });
       sel.onchange = function () { setStatus(t, sel.value); };
       var eye = document.createElement('button'); eye.textContent = t.hidden ? '🚫' : '👁';
-      eye.title = t.hidden ? 'Скрыт от игроков — показать' : 'Виден игрокам — скрыть';
+      eye.title = t.hidden ? tr('gm.token.hidden.title') : tr('gm.token.visible.title');
       eye.onclick = function () { toggleHidden(t); };
-      var ed = document.createElement('button'); ed.textContent = '✎'; ed.title = 'Редактировать';
+      var ed = document.createElement('button'); ed.textContent = '✎'; ed.title = tr('common.edit');
       ed.onclick = function () { openTokenDialog('edit', t); };
       l2.appendChild(sel); l2.appendChild(eye); l2.appendChild(ed);
       row.appendChild(l1); row.appendChild(l2);
@@ -688,10 +689,10 @@
     S.scene.round++; S.scene.tokens.forEach(function (t) { t.moved = 0; }); S.undo = [];
     if (VTT.blog) VTT.blog.onRound(S.scene.round);
     if (VTT.combat) VTT.combat.onNewRound();
-    changed(); toast('Раунд ' + S.scene.round);
+    changed(); toast(tr('gm.toast.round', { n: S.scene.round }));
   }
   // категории: «01 Авантюристы» — сортировка по номеру, показ без номера
-  var NO_CAT = 'Без категории';
+  var NO_CAT = tr('lib.noCategory');
   function catTitle(c) { return String(c || '').replace(/^\d+\s+/, '') || NO_CAT; }
   function norm(s) { return String(s || '').toLowerCase().replace(/ё/g, 'е'); }
   function libCats() {
@@ -709,17 +710,17 @@
     if (tpl.image) sw.style.backgroundImage = 'url(' + tpl.image + ')';
     sw.style.borderColor = VTT.tokensDraw.KIND_COLOR[tpl.kind];
     var nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = tpl.name;
-    var ed = document.createElement('button'); ed.textContent = '✎'; ed.title = 'Редактировать шаблон';
+    var ed = document.createElement('button'); ed.textContent = '✎'; ed.title = tr('tokdlg.titleTpl');
     ed.onclick = function (e) { e.stopPropagation(); openTokenDialog('tpl', tpl); };
-    var x = document.createElement('button'); x.textContent = '🗑'; x.title = 'Удалить из библиотеки';
+    var x = document.createElement('button'); x.textContent = '🗑'; x.title = tr('lib.remove.title');
     x.onclick = async function (e) {
       e.stopPropagation();
-      if (!(await VTT.ui.confirm({ title: 'Удалить шаблон', text: 'Удалить «' + tpl.name + '» из библиотеки?', ok: 'Удалить', danger: true }))) return;
+      if (!(await VTT.ui.confirm({ title: tr('lib.confirm.title'), text: tr('lib.confirm.text', { name: tpl.name }), ok: tr('common.delete'), danger: true }))) return;
       S.lib = S.lib.filter(function (l) { return l.lid !== tpl.lid; });
       libChanged();
     };
     row.appendChild(sw); row.appendChild(nm); row.appendChild(ed); row.appendChild(x);
-    row.title = 'Клик — поставить на карту' + (withCat ? '\nКатегория: ' + catTitle(tpl.category) : '');
+    row.title = tr('lib.row.title') + (withCat ? tr('lib.row.category', { cat: catTitle(tpl.category) }) : '');
     row.onclick = function () { placeFromLib(tpl); };
     return row;
   }
@@ -729,20 +730,20 @@
     $('libEmpty').hidden = S.lib.length > 0;
     var q = norm(S.libQuery).trim(), words = q ? q.split(/\s+/) : [], searching = words.length > 0;
     // группы: партия (kind pc) → категории по номеру → без категории
-    var groups = [{ key: '__pc', title: 'Партия', items: [] }], byCat = {};
+    var groups = [{ key: '__pc', title: tr('lib.party'), items: [] }], byCat = {};
     libCats().forEach(function (c) { byCat[c] = { key: c, title: catTitle(c), items: [] }; groups.push(byCat[c]); });
     var none = { key: '__none', title: NO_CAT, items: [] }; groups.push(none);
     var shown = 0;
     S.lib.forEach(function (l) {
       if (searching) {
-        var hay = norm(l.name + ' ' + (l.kind === 'pc' ? 'партия игрок' : catTitle(l.category)));
+        var hay = norm(l.name + ' ' + (l.kind === 'pc' ? tr('lib.partyKeywords') : catTitle(l.category)));
         for (var i = 0; i < words.length; i++) if (hay.indexOf(words[i]) < 0) return;
       }
       shown++;
       (l.kind === 'pc' ? groups[0] : (l.category && byCat[l.category]) || none).items.push(l);
     });
     if (searching && !shown) {
-      var m = document.createElement('div'); m.className = 'muted small'; m.textContent = 'Ничего не найдено';
+      var m = document.createElement('div'); m.className = 'muted small'; m.textContent = tr('lib.notFound');
       box.appendChild(m); return;
     }
     var budget = LIB_SEARCH_MAX;
@@ -761,7 +762,7 @@
         list.forEach(function (tpl) { gb.appendChild(libRow(tpl, searching)); });
         if (list.length < g.items.length) {
           var more = document.createElement('div'); more.className = 'muted small';
-          more.textContent = '… ещё ' + (g.items.length - list.length) + ' — уточните поиск';
+          more.textContent = tr('lib.more', { n: g.items.length - list.length });
           gb.appendChild(more);
         }
       };
@@ -816,15 +817,15 @@
   function showTokenMenu(x, y, t) {
     selectToken(t.id);
     showMenu(x, y, [
-      { label: 'Статус', sub: Object.keys(STATUS_NAMES).map(function (k) {
+      { label: tr('gm.menu.status'), sub: Object.keys(STATUS_NAMES).map(function (k) {
         return { label: STATUS_NAMES[k], cur: t.status === k, fn: function () { setStatus(t, k); } };
       }) },
-      { label: t.hidden ? 'Показать игрокам' : 'Скрыть от игроков', fn: function () { toggleHidden(t); } },
-      { label: 'Редактировать…', fn: function () { openTokenDialog('edit', t); } },
-      { label: 'Дублировать', fn: function () { duplicate(t); } },
-      { label: 'В библиотеку', fn: function () { addToLibrary(t); } },
+      { label: t.hidden ? tr('gm.menu.showPlayers') : tr('gm.menu.hidePlayers'), fn: function () { toggleHidden(t); } },
+      { label: tr('gm.menu.edit'), fn: function () { openTokenDialog('edit', t); } },
+      { label: tr('gm.menu.duplicate'), fn: function () { duplicate(t); } },
+      { label: tr('gm.menu.toLibrary'), fn: function () { addToLibrary(t); } },
       'sep',
-      { label: 'Удалить', danger: true, fn: function () { removeToken(t); } }
+      { label: tr('common.delete'), danger: true, fn: function () { removeToken(t); } }
     ]);
   }
 
@@ -860,7 +861,7 @@
     S.segs = null;
     if (S.scene.settings.autoReveal) autoRevealAll();
     changed({ noList: true });
-    toast(S.scene.doors[best] ? 'Дверь открыта' : 'Дверь закрыта');
+    toast(S.scene.doors[best] ? tr('gm.toast.doorOpen') : tr('gm.toast.doorClosed'));
   }
   function paintLine(a, b, val) {
     var n = Math.max(Math.abs(b.x - a.x), Math.abs(b.y - a.y)) || 1, ch = false;
@@ -877,15 +878,15 @@
     if (!m || c.x < 0 || c.y < 0 || c.x >= m.cols || c.y >= m.rows) { $('stCell').textContent = '—'; return; }
     var L = m.meta.layers || {}, parts = [G().cellName(c.x, c.y)];
     var e = L.elevation_ft && L.elevation_ft[c.y] ? L.elevation_ft[c.y][c.x] : 0;
-    parts.push('высота ' + (e > 0 ? '+' : '') + (e || 0) + ' фт');
+    parts.push(tr('gm.cell.height', { h: (e > 0 ? '+' : '') + (e || 0) }));
     var terr = L.terrain && L.terrain[c.y] ? String(L.terrain[c.y][c.x] || '') : '';
-    if (L.difficult && L.difficult[c.y][c.x] == 1) parts.push('труднопроходимая');
-    if (/water/.test(terr)) parts.push('вода');
-    if (L.hazard && L.hazard[c.y][c.x] === 'hole') parts.push('провал');
+    if (L.difficult && L.difficult[c.y][c.x] == 1) parts.push(tr('gm.cell.difficult'));
+    if (/water/.test(terr)) parts.push(tr('gm.cell.water'));
+    if (L.hazard && L.hazard[c.y][c.x] === 'hole') parts.push(tr('gm.cell.hole'));
     else if (L.hazard && L.hazard[c.y][c.x]) parts.push(String(L.hazard[c.y][c.x]));
-    if (L.obstacle && L.obstacle[c.y][c.x] == 1) parts.push('препятствие');
+    if (L.obstacle && L.obstacle[c.y][c.x] == 1) parts.push(tr('gm.cell.obstacle'));
     var rule = M().cellRule(m, c.x, c.y);
-    if (rule.blocked && parts.indexOf('препятствие') < 0 && parts.indexOf('провал') < 0) parts.push('непроходимо');
+    if (rule.blocked && parts.indexOf(tr('gm.cell.obstacle')) < 0 && parts.indexOf(tr('gm.cell.hole')) < 0) parts.push(tr('gm.cell.blocked'));
     $('stCell').textContent = parts.join(' · ');
   }
 
@@ -1068,7 +1069,7 @@
     $('btnSettings').onclick = function () { VTT.settings.open(); };
 
     $('btnPlayer').onclick = function () {
-      Promise.resolve(VTT.sync.openPlayerWindow()).catch(function (e) { toast('Не удалось открыть окно игроков: ' + (e && e.message || e), 4000); });
+      Promise.resolve(VTT.sync.openPlayerWindow()).catch(function (e) { toast(tr('gm.err.openPlayer', { msg: e && e.message || e }), 4000); });
     };
     VTT.sync.onHello(function () { pushMap(); });
     VTT.sync.onState(function (open) { $('btnPlayer').classList.toggle('active', open); if (open) setTimeout(pushMap, 300); });
@@ -1085,7 +1086,7 @@
     };
     $('btnHideAll').onclick = async function () {
       if (!S.map) return;
-      if (!(await VTT.ui.confirm({ title: 'Скрыть всю карту', text: 'Скрыть туманом всю карту?', ok: 'Скрыть' }))) return;
+      if (!(await VTT.ui.confirm({ title: tr('gm.confirm.hideAll.title'), text: tr('gm.confirm.hideAll.text'), ok: tr('common.hide') }))) return;
       S.scene.fog = new Array(S.map.cols * S.map.rows + 1).join('1'); changed({ noList: true });
     };
     $('btnNewRound').onclick = function () {
@@ -1095,15 +1096,15 @@
     $('btnRevealPlayers').onclick = revealPlayers;
     $('btnResetRounds').onclick = async function () {
       if (!S.map) return;
-      if (!(await VTT.ui.confirm({ title: 'Сбросить раунды', text: 'Вернуть раунд 1 и обнулить пройденное всем токенам?', ok: 'Сбросить' }))) return;
+      if (!(await VTT.ui.confirm({ title: tr('gm.confirm.resetRounds.title'), text: tr('gm.confirm.resetRounds.text'), ok: tr('common.reset') }))) return;
       S.scene.round = 1; S.scene.tokens.forEach(function (t) { t.moved = 0; }); S.undo = [];
-      changed(); toast('Раунды сброшены');
+      changed(); toast(tr('gm.toast.roundsReset'));
     };
     $('btnClearScene').onclick = async function () {
       if (!S.map || !S.scene) return;
-      if (!(await VTT.ui.confirm({ title: 'Очистить сцену', text: 'Карта будет закрыта туманом, раунды и бой сброшены, все токены удалены со сцены. Продолжить?', ok: 'Продолжить', danger: true }))) return;
-      if (!(await VTT.ui.confirm({ title: 'Очистить сцену — точно?', text: 'Это действие нельзя отменить. Удалить ВСЕ токены и закрыть карту?', ok: 'Да, очистить', danger: true }))) return;
-      if (VTT.blog && VTT.blog.hasData()) await VTT.blog.promptSave('Перед очисткой сцены: сохранить журнал боя в заметку?');
+      if (!(await VTT.ui.confirm({ title: tr('gm.confirm.clearScene.title'), text: tr('gm.confirm.clearScene.text'), ok: tr('common.continue'), danger: true }))) return;
+      if (!(await VTT.ui.confirm({ title: tr('gm.confirm.clearScene2.title'), text: tr('gm.confirm.clearScene2.text'), ok: tr('gm.confirm.clearScene2.ok'), danger: true }))) return;
+      if (VTT.blog && VTT.blog.hasData()) await VTT.blog.promptSave(tr('gm.prompt.saveBeforeClear'));
       var sc = S.scene;
       cancelPlacement();
       sc.tokens = [];
@@ -1112,7 +1113,7 @@
       sc.combat = { active: false, order: [], turnId: null };
       if (Array.isArray(sc.counters)) sc.counters = [];
       S.sel = null; S.r.selectedId = null; S.undo = []; S.sentImages = {};
-      changed(); toast('Сцена очищена');
+      changed(); toast(tr('gm.toast.sceneCleared'));
     };
     $('btnPlaceParty').onclick = startParty;
     $('libSearch').oninput = function () {
@@ -1124,7 +1125,7 @@
       if (e.key === 'Escape') { $('libSearch').value = ''; S.libQuery = ''; renderLib(); }
     };
     $('btnLibExport').onclick = function () {
-      VTT.store.exportLibrary(S.lib).catch(function (e) { toast('Не удалось сохранить: ' + (e && e.message || e), 4000); });
+      VTT.store.exportLibrary(S.lib).catch(function (e) { toast(tr('common.saveFailed', { msg: e && e.message || e }), 4000); });
     };
     $('btnLibImport').onclick = function () { $('fileLib').click(); };
     $('fileLib').onchange = function () {
@@ -1138,8 +1139,8 @@
         var kept = S.lib.filter(function (t) { return !byLid[t.lid]; });
         S.lib = migrateLib(imp.concat(kept));
         libChanged(true);
-        toast('Библиотека импортирована: ' + imp.length + ' шт. (новых +' + Math.max(0, S.lib.length - before) + ')');
-      }).catch(function (e) { VTT.ui.alert({ title: 'Импорт библиотеки', text: e.message || String(e) }); });
+        toast(tr('gm.toast.libImported', { n: imp.length, added: Math.max(0, S.lib.length - before) }));
+      }).catch(function (e) { VTT.ui.alert({ title: tr('gm.import.lib.title'), text: e.message || String(e) }); });
     };
     Array.prototype.forEach.call(document.querySelectorAll('.pview'), function (b) {
       b.onclick = function () {
@@ -1152,7 +1153,7 @@
     $('btnSendView').onclick = function () {
       if (!S.map) return;
       S.scene.settings.playerView = 'gm'; S.sentView = S.r.getView();
-      syncSettingsUI(); changed({ noList: true }); toast('Вид отправлен игрокам');
+      syncSettingsUI(); changed({ noList: true }); toast(tr('gm.toast.viewSent'));
     };
     // «Как у меня»: раз в секунду досылаем игрокам текущий вид мастера, если он изменился
     setInterval(function () {
@@ -1167,7 +1168,7 @@
     $('btnHelpClose').onclick = function () { $('help').hidden = true; };
     $('btnPanel').onclick = function () { $('app').classList.toggle('nopanel'); };
     $('btnNewToken').onclick = function () {
-      if (!S.map) { toast('Сначала откройте карту'); return; }
+      if (!S.map) { toast(tr('common.openMapFirst')); return; }
       openTokenDialog('new');
     };
 
@@ -1183,18 +1184,18 @@
     setting('setLabGM', 'labelsGM'); setting('setLabPl', 'labelsPlayer');
 
     $('btnExport').onclick = function () {
-      if (S.scene) VTT.store.exportScene(S.scene).catch(function (e) { toast('Не удалось сохранить: ' + (e && e.message || e), 4000); });
+      if (S.scene) VTT.store.exportScene(S.scene).catch(function (e) { toast(tr('common.saveFailed', { msg: e && e.message || e }), 4000); });
     };
     $('btnImport').onclick = function () { $('fileScene').click(); };
     $('fileScene').onchange = function () {
       var f = $('fileScene').files[0]; $('fileScene').value = '';
       if (!f) return;
-      if (!S.map) { VTT.ui.alert({ title: 'Импорт сцены', text: 'Сначала откройте карту, к которой относится сцена.' }); return; }
+      if (!S.map) { VTT.ui.alert({ title: tr('gm.import.scene.title'), text: tr('gm.import.scene.needMap') }); return; }
       VTT.store.importScene(f).then(function (sc) {
-        if (sc.map !== S.map.name) { VTT.ui.alert({ title: 'Импорт сцены', text: 'Сцена относится к карте «' + sc.map + '», а открыта «' + S.map.name + '».' }); return; }
+        if (sc.map !== S.map.name) { VTT.ui.alert({ title: tr('gm.import.scene.title'), text: tr('gm.err.sceneMismatch', { scene: sc.map, open: S.map.name }) }); return; }
         S.scene = normalizeScene(sc, S.map); S.segs = null; S.undo = []; S.sel = null; S.r.selectedId = null; S.sentView = null;
-        S.r.setScene(S.scene); syncSettingsUI(); changed(); pushMap(); toast('Сцена импортирована');
-      }).catch(function (e) { VTT.ui.alert({ title: 'Импорт сцены', text: 'Не удалось импортировать: ' + e.message }); });
+        S.r.setScene(S.scene); syncSettingsUI(); changed(); pushMap(); toast(tr('gm.toast.sceneImported'));
+      }).catch(function (e) { VTT.ui.alert({ title: tr('gm.import.scene.title'), text: tr('gm.err.importFail', { msg: e.message }) }); });
     };
 
     // перетаскивание файлов
@@ -1220,7 +1221,7 @@
     if (action === 'import-map') { $('picker').hidden = false; refreshMaps(); importMapDialog(); }
     else if (action === 'settings') VTT.settings.open();
     else if (action === 'wizard') window.host.app.showWizard();
-    else if (action === 'campaigns') VTT.ui.alert({ title: 'Кампании', text: 'Переключение кампаний появится в одной из следующих версий.' });
+    else if (action === 'campaigns') VTT.ui.alert({ title: tr('gm.campaigns.title'), text: tr('gm.campaigns.soon') });
   }
 
   VTT.gm = {

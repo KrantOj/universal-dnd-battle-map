@@ -2,6 +2,7 @@
 (function () {
   'use strict';
   var VTT = (window.VTT = window.VTT || {});
+  var tr = VTT.i18n.t;
 
   var r = null, map = null, scene = null, images = {}, pendingState = null;
   var lastState = null, lastBox = '', hideTimer = null, helloTimer = null;
@@ -104,7 +105,7 @@
     qKey = key;
     if (!qEl) { qEl = document.createElement('div'); qEl.id = 'queueShow'; document.body.appendChild(qEl); }
     qEl.textContent = '';
-    var h = document.createElement('div'); h.className = 'q-h'; h.textContent = 'Раунд ' + round; qEl.appendChild(h);
+    var h = document.createElement('div'); h.className = 'q-h'; h.textContent = tr('player.round', { n: round }); qEl.appendChild(h);
     q.forEach(function (t) {
       var row = document.createElement('div'); row.className = 'q-i k-' + t.kind + (t.turn ? ' turn' : '');
       var av = document.createElement('span'); av.className = 'q-av'; av.style.background = t.color || '#555';
@@ -260,8 +261,8 @@
       var tot = String(msg.total);
       num.textContent = tot; num.setAttribute('data-len', String(Math.min(tot.length, 4)));
       rollEl.classList.add('landed');
-      if (msg.d20 === 20) { rollEl.classList.add('nat20'); q('.rs-badge').textContent = 'Критический успех!'; }
-      else if (msg.d20 === 1) { rollEl.classList.add('nat1'); q('.rs-badge').textContent = 'Критический провал'; }
+      if (msg.d20 === 20) { rollEl.classList.add('nat20'); q('.rs-badge').textContent = tr('player.crit.success'); }
+      else if (msg.d20 === 1) { rollEl.classList.add('nat1'); q('.rs-badge').textContent = tr('player.crit.fail'); }
       q('.rs-text').textContent = msg.text || '';
     }, THROW_MS);
     rollTimer = setTimeout(function () {
