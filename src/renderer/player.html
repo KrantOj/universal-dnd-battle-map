@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' app: userfile: data: blob:; img-src 'self' app: userfile: data: blob:; media-src app: userfile: blob:">
+<title>Universal DnD Battle map — игроки</title>
+<link rel="stylesheet" href="css/vtt.css">
+<link rel="stylesheet" href="css/ui.css">
+<link rel="stylesheet" href="css/showcase.css">
+<link rel="stylesheet" href="css/show-player.css">
+<link rel="stylesheet" href="css/combat.css">
+</head>
+<body class="player">
+<div id="app">
+  <main id="stage">
+    <canvas id="canvas"></canvas>
+  </main>
+</div>
+
+<div id="splash">Ожидание мастера…</div>
+
+<script src="js/geometry.js"></script>
+<script src="js/movement.js"></script>
+<script src="js/dice.js"></script>
+<script src="js/tokens-draw.js"></script>
+<script src="js/render.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/player.js"></script>
+<script src="js/boot-player.js"></script>
+</body>
+</html>

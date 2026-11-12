@@ -1,0 +1,133 @@
+/* VTT.ui - модальные диалоги (тёмная тема приложения) */
+
+.vtt-ui-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  animation: vtt-ui-fade 120ms ease-out;
+}
+
+.vtt-ui-dialog {
+  box-sizing: border-box;
+  width: min(420px, 92vw);
+  padding: 20px;
+  background: #1b1f24;
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #c9d1d9;
+  animation: vtt-ui-scale 120ms ease-out;
+}
+
+.vtt-ui-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #e6edf3;
+}
+
+.vtt-ui-text {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #c9d1d9;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.vtt-ui-input {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0 0 16px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 14px;
+  color: #e6edf3;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  outline: none;
+}
+
+.vtt-ui-input:focus {
+  border-color: #388bfd;
+  box-shadow: 0 0 0 3px rgba(56, 139, 253, 0.3);
+}
+
+.vtt-ui-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.vtt-ui-btn {
+  min-width: 80px;
+  padding: 7px 14px;
+  font: inherit;
+  font-size: 14px;
+  color: #c9d1d9;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 80ms ease, border-color 80ms ease;
+}
+
+.vtt-ui-btn:hover {
+  background: #30363d;
+  border-color: #8b949e;
+}
+
+.vtt-ui-btn:active {
+  transform: translateY(1px);
+}
+
+.vtt-ui-btn-ok {
+  color: #ffffff;
+  background: #238636;
+  border-color: rgba(240, 246, 252, 0.1);
+}
+
+.vtt-ui-btn-ok:hover {
+  background: #2ea043;
+  border-color: rgba(240, 246, 252, 0.1);
+}
+
+.vtt-ui-btn-ok.vtt-ui-danger {
+  background: #da3633;
+}
+
+.vtt-ui-btn-ok.vtt-ui-danger:hover {
+  background: #e5534b;
+}
+
+.vtt-ui-btn:focus-visible,
+.vtt-ui-input:focus-visible {
+  outline: 2px solid #388bfd;
+  outline-offset: 2px;
+}
+
+@keyframes vtt-ui-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes vtt-ui-scale {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vtt-ui-backdrop,
+  .vtt-ui-dialog {
+    animation: none;
+  }
+}

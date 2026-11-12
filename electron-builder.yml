@@ -5,6 +5,8 @@ directories:
 files:
   - src/**
   - package.json
+  - tests/fixtures/**
+  - build/icon.png
 win:
   icon: build/icon.ico
   target:

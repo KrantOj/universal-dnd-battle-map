@@ -9,6 +9,8 @@
   "scripts": {
     "start": "electron .",
     "test": "node --test tests/",
+    "smoke": "electron . --smoke",
+    "smoke:wizard": "electron . --smoke-wizard",
     "dist": "electron-builder --win --publish never"
   },
   "devDependencies": {
