@@ -106,8 +106,8 @@ async function run(windows, campaigns) {
     const mediaDir = path.join(tmp, 'media'); fs.mkdirSync(mediaDir, { recursive: true });
     fs.copyFileSync(path.join(appPath, 'build', 'icon.png'), path.join(mediaDir, 'Herb.png'));
     campaigns.create({
-      name: 'Smoke',
-      folders: { data: path.join(tmp, 'data'), maps: mapsDir, battlelog: path.join(tmp, 'log'), music: require('./smoke-music').prepare(tmp) },
+      name: only === 'shots' ? 'Demo campaign' : 'Smoke',
+      folders: { data: path.join(tmp, 'data'), maps: mapsDir, battlelog: path.join(tmp, 'log'), music: only === 'shots' ? require('./smoke-shots').prepareMusic(tmp) : require('./smoke-music').prepare(tmp) },
       media: [{ id: 'm1', label: 'Картинки', path: mediaDir }],
       playerWindow: { auto: false },
     });
@@ -116,6 +116,18 @@ async function run(windows, campaigns) {
     if (only === 'music') {
       await step('init', async () => { await waitFor("!!(window.VTT && VTT.gm && VTT.music && document.querySelectorAll('#mapList button').length)", 15000); });
       await require('./smoke-music')({ windows, campaigns, tmp, ex, waitFor, step, sleep });
+      clearTimeout(watchdog);
+      return finish(report.errors.length || report.consoleErrors.length ? 1 : 0);
+    }
+
+    if (only === 'about') {
+      await require('./smoke-about')({ windows, appPath, ex, waitFor, step, sleep });
+      clearTimeout(watchdog);
+      return finish(report.errors.length || report.consoleErrors.length ? 1 : 0);
+    }
+
+    if (only === 'shots') {
+      await require('./smoke-shots')({ windows, appPath, ex, waitFor, step, sleep });
       clearTimeout(watchdog);
       return finish(report.errors.length || report.consoleErrors.length ? 1 : 0);
     }

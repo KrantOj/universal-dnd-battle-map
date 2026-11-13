@@ -25,6 +25,16 @@ contextBridge.exposeInMainWorld('host', {
     defaultDataDir: (name) => inv('app:defaultDataDir', name),
     showWizard: () => inv('app:showWizard'),
     showGm: () => inv('app:showGm'),
+    openAbout: () => inv('app:openAbout'),
+    license: () => inv('app:license'),
+    openExternal: (url) => inv('app:openExternal', url),
+  },
+  update: {
+    state: () => inv('update:state'),
+    check: () => inv('update:check'),
+    install: () => inv('update:install'),
+    openRelease: () => inv('update:openRelease'),
+    onState: (cb) => sub('update:state', cb),
   },
   settings: {
     get: () => inv('settings:get'),

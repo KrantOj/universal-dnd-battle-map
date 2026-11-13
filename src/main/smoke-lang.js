@@ -33,11 +33,11 @@ module.exports = async function langSmoke(k) {
   const overflow = async (name, run) => {
     try { const l = await run(); if (l && l.length) (report.warnings = report.warnings || []).push({ overflow: name, items: l }); } catch (_) { /* окно мог закрыться */ }
   };
-  // после перезагрузки посреди боя приложение предлагает сохранить «оставшийся» бой — закрываем диалог
+  // после смены языка посреди боя вопроса «сохранить оставшийся бой?» быть не должно: бой тихо восстанавливается
   const dismissPrompt = async () => {
-    await sleep(800);
-    await ex("(function(){var b=document.querySelector('.vtt-ui-dialog .vtt-ui-btn');if(b)b.click();})()");
-    await sleep(300);
+    await sleep(1200);
+    must(!(await ex("!!document.querySelector('.vtt-ui-dialog')")), 'после смены языка показан диалог «оставшийся бой»');
+    must(await ex('VTT.blog.hasData()'), 'бой не восстановился после смены языка');
   };
   const gmReady = '!!(window.VTT && VTT.gm && VTT.gm._state.map && VTT.gm._state.scene)';
 
@@ -112,7 +112,7 @@ module.exports = async function langSmoke(k) {
   await step('back-to-gm-ru', async () => {
     await ex("document.getElementById('wzCancel').click()");
     await waitFor(gmReady, 15000);
-    await ex("window.host.settings.set({ lang: 'ru' })");
+    await ex("VTT.cfg.setLanguage('ru')");
     await waitFor("document.documentElement.lang === 'ru' && " + gmReady, 20000);
     await dismissPrompt();
     must(Menu.getApplicationMenu().items[0].label === 'Файл', 'меню не вернулось на русский');

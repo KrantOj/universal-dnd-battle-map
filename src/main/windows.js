@@ -12,6 +12,7 @@ const APP = 'app://local/';
 let gmWindow = null;
 let playerWindow = null;
 let editorWindow = null;
+let aboutWindow = null;
 let editorRequest = null;     // запрос на открытие (карта/новая из картинки), который окно редактора забирает при загрузке
 let editorDirty = false;
 let editorForceClose = false;
@@ -145,6 +146,23 @@ function openInGm(rel) {
   gmWindow.webContents.send('editor:openMap', String(rel));
 }
 
+// ---------- About window ----------
+function getAboutWindow() { return aboutWindow && !aboutWindow.isDestroyed() ? aboutWindow : null; }
+function openAbout() {
+  if (getAboutWindow()) { if (aboutWindow.isMinimized()) aboutWindow.restore(); aboutWindow.show(); aboutWindow.focus(); return; }
+  const win = new BrowserWindow({
+    width: 540, height: 680, minWidth: 420, minHeight: 480, show: false, backgroundColor: '#111111',
+    title: t('about.title'), parent: gmWindow && !gmWindow.isDestroyed() ? gmWindow : undefined,
+    minimizable: false, maximizable: false, webPreferences: webPrefs(),
+  });
+  aboutWindow = win;
+  win.setMenu(null);
+  secure(win, 'about');
+  win.on('closed', () => { if (aboutWindow === win) aboutWindow = null; });
+  win.once('ready-to-show', () => win.show());
+  return load(win, 'about.html');
+}
+
 /** Язык сменился: заголовки окон и перезагрузка страниц (HTML получает новый <html lang>). Мастер уже сбросил состояние на диск. */
 function applyLang() {
   if (isEditorOpen()) { editorWindow.setTitle(t('editor.title')); editorWindow.webContents.send('app:langChanged'); }   // редактор сам допишет черновик и перезагрузится
@@ -154,6 +172,7 @@ function applyLang() {
     if (gmWindow && !gmWindow.isDestroyed()) gmWindow.webContents.once('did-finish-load', () => setTimeout(reloadPlayer, 300));
     else reloadPlayer();
   }
+  if (getAboutWindow()) { aboutWindow.setTitle(t('about.title')); aboutWindow.webContents.reload(); }
   if (gmWindow && !gmWindow.isDestroyed()) gmWindow.webContents.reload();
 }
 
@@ -244,6 +263,6 @@ function broadcast(channel, ...args) {
 }
 
 module.exports = {
-  createGmWindow, getGmWindow, openEditor, getEditorWindow, isEditorOpen, takeEditorRequest, setEditorDirty, forceCloseEditor, openInGm, getPlayerWindow, showWizard, showGm, applyLang,
+  createGmWindow, getGmWindow, openEditor, getEditorWindow, getAboutWindow, openAbout, isEditorOpen, takeEditorRequest, setEditorDirty, forceCloseEditor, openInGm, getPlayerWindow, showWizard, showGm, applyLang,
   openPlayer, closePlayer, isPlayerOpen, togglePlayerFullscreen, watchDisplays, relay, broadcast, emitPlayerState,
 };

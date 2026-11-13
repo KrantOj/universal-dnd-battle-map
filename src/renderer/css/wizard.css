@@ -23,3 +23,7 @@ body.wizard { overflow: auto; background: var(--bg); }
 .card h3 { margin: 14px 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 #settingsDlg .card { width: min(760px, 96vw); }
 #setMsg { min-height: 1.2em; font-size: 12px; color: var(--muted); }
+
+/* плашка «Доступна новая версия» (gm.html) */
+.upd-bar { position: fixed; left: 50%; bottom: 36px; transform: translateX(-50%); z-index: 9000; display: flex; gap: 10px; align-items: center;
+  background: var(--panel); border: 1px solid var(--accent); border-radius: 8px; padding: 8px 12px; box-shadow: 0 6px 24px rgba(0,0,0,.5); font-size: 13px; }

@@ -1,5 +1,5 @@
 'use strict';
-const { Menu, app, dialog } = require('electron');
+const { Menu } = require('electron');
 const windows = require('./windows');
 const logger = require('./log');
 const { t } = require('./i18n');
@@ -9,16 +9,7 @@ function send(action) {
   if (w && !w.isDestroyed()) w.webContents.send('menu:action', action);
 }
 
-function about() {
-  const w = windows.getGmWindow();
-  dialog.showMessageBox(w || undefined, {
-    type: 'info',
-    title: t('menu.about.title'),
-    message: 'Universal DnD Battle map',
-    detail: t('menu.about.detail', { version: app.getVersion(), electron: process.versions.electron }),
-    buttons: ['OK'],
-  });
-}
+function about() { windows.openAbout(); }
 
 function build() {
   const template = [

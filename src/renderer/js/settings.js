@@ -117,6 +117,12 @@
     body.appendChild(langRow);
     body.appendChild(cfg.el('div', 'cfg-note', tr('settings.language.note')));
 
+    // проверка обновлений (глобальная настройка приложения)
+    var upd = cfg.checkRow(tr('settings.updates'), true, function (v) { window.host.settings.set({ checkUpdates: v }).catch(function () { /* ignore */ }); });
+    body.appendChild(upd.el);
+    window.host.settings.get().then(function (s) { upd.input.checked = s.checkUpdates !== false; }).catch(function () { /* ignore */ });
+    body.appendChild(cfg.el('div', 'cfg-note', tr('settings.updates.note')));
+
     // название
     var nameRow = cfg.el('div', 'cfg-row');
     nameRow.appendChild(cfg.el('div', 'cfg-lbl', tr('settings.campName')));
