@@ -3,7 +3,7 @@
 Формат раздела: `## [X.Y.Z] - дата`. Скрипт `npm run release` берёт текст раздела текущей версии из package.json как описание релиза.
 Section format: `## [X.Y.Z] - date`. `npm run release` uses the section of the current package.json version as the release notes.
 
-## [1.0.0] - unreleased
+## [1.0.0] - 2026-11-13
 
 **RU**
 - Первый публичный релиз: установщик и портативная версия для Windows.
@@ -11,6 +11,10 @@ Section format: `## [X.Y.Z] - date`. `npm run release` uses the section of the c
 - Автообновление: установленная версия сама находит и скачивает новую (проверка при запуске и раз в 6 часов), «Установить и перезапустить». Портативная версия только сообщает о новой версии со ссылкой на релиз. Настройка «Проверять обновления».
 - Смена языка посреди боя больше не спрашивает про «оставшийся бой» — бой восстанавливается сам.
 - Иконка приложения, README со скриншотами, руководства RU/EN.
+- Редактор: двери длиной в несколько клеток, стены привязаны к углам клеток (Alt — свободно), панель не обрезается, после закрытия редактора открывается главное окно.
+- Музыка: перемотка ползунком, «Автоматически переходить к следующему треку», плавный переход на коротких треках, длинные плейлисты отображаются целиком.
+- Анимация броска кубиков у игроков короче. F11 — полноэкранный режим, Esc — выход из него.
+- При удалении программы можно удалить и настройки со списком кампаний (по умолчанию — нет).
 
 **EN**
 - First public release: installer and portable build for Windows.
@@ -18,6 +22,10 @@ Section format: `## [X.Y.Z] - date`. `npm run release` uses the section of the c
 - Auto-update: the installed build finds and downloads new versions by itself (on start and every 6 hours) and offers "Install and restart". The portable build only tells you about a new version and links to the release. New "Check for updates" setting.
 - Switching the language in the middle of a battle no longer asks about a "leftover battle" — the battle is restored silently.
 - App icon, README with screenshots, RU/EN user guides.
+- Editor: multi-cell doors, walls snap to cell corners (Alt for free placement), side panel no longer clipped, the main window reopens when the editor closes.
+- Music: seeking with the slider, "Automatically play the next track", crossfade on short tracks, long playlists are fully listed.
+- Shorter dice animation on the players' screen. F11 toggles fullscreen, Esc exits it.
+- The uninstaller can also remove settings and the campaign list (default: no).
 
 ## [0.5.0] - 2026-11-13
 
