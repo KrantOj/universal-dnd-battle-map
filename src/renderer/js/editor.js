@@ -9,8 +9,9 @@
   function $(id) { return document.getElementById(id); }
 
   var DRAFT = 'editor-draft.json';
+  var STAGE = 'editor-stage';       // data/editor-stage/<имя>/<картинка> — новая карта до первого сохранения
   var E = {
-    model: null, img: null, hist: null, savedSnap: null, entryRel: null, imgRel: null, isNew: false,
+    model: null, img: null, hist: null, savedSnap: null, entryRel: null, imgRel: null, imgRoot: 'maps', isNew: false,
     tool: 'select', vis: { walls: true, terrain: true, elev: true, grid: true },
     sel: null, pv: {}, kind: 'difficult', shape: 'brush', size: 1, fillWalls: true, doorOpen: false,
     view: null, drag: null, wallPts: null, boxMode: false, box: null, spanMode: false, span: null, space: false, pan: null, hoverCell: null
@@ -76,7 +77,7 @@
     if (!E.model) return;
     try {
       await H().fs.writeText('data', DRAFT, JSON.stringify({
-        format: 'udbm-editor-draft/1', ts: Date.now(), entryRel: E.entryRel, imgRel: E.imgRel, isNew: E.isNew, auto: $('gAuto').checked, meta: M().toMeta(E.model)
+        format: 'udbm-editor-draft/1', ts: Date.now(), entryRel: E.entryRel, imgRel: E.imgRel, imgRoot: E.imgRoot, isNew: E.isNew, auto: $('gAuto').checked, meta: M().toMeta(E.model)
       }));
     } catch (e) { console.warn('draft', e); }
   }
@@ -137,7 +138,7 @@
 
   // ------------------------------------------------------------------ загрузка / создание карт
   function loadModel(model, img, o) {
-    E.model = model; E.img = img; E.entryRel = o.entryRel; E.imgRel = o.imgRel; E.isNew = !!o.isNew;
+    E.model = model; E.img = img; E.entryRel = o.entryRel; E.imgRel = o.imgRel; E.imgRoot = o.imgRoot || 'maps'; E.isNew = !!o.isNew;
     E.hist = new (M().History)(100); E.hist.reset(M().snapshot(model));
     E.savedSnap = o.isNew || o.dirty ? null : M().snapshot(model);
     E.sel = null; E.wallPts = null; E.pv = {}; E.drag = null; E.boxMode = false; E.spanMode = false; E.span = null;
@@ -165,11 +166,13 @@
       name = safeName(name);
       if (!name) return;
       if (await H().fs.exists('maps', name + '/' + name + '.map.json')) { await VTT.ui.alert({ title: tr('common.attention'), text: tr('editor.new.exists', { name: name }) }); return; }
-      var rels = await H().fs.importFiles([paths[0]], 'maps', name);
+      // картинка копируется в папку карт только при первом сохранении; до этого лежит во временной папке данных (отмена не оставляет мусора в maps/)
+      await H().fs.remove('data', STAGE).catch(function () {});
+      var rels = await H().fs.importFiles([paths[0]], 'data', STAGE + '/' + name);
       var imgRel = rels[0];
-      var img = await VTT.store._loadImage(H().fs.url('maps', imgRel));
+      var img = await VTT.store._loadImage(H().fs.url('data', imgRel));
       var model = M().create({ name: name, image: fileOf(imgRel), imgW: img.naturalWidth, imgH: img.naturalHeight, ppg: 70 });
-      loadModel(model, img, { entryRel: name + '/' + name + '.map.json', imgRel: imgRel, isNew: true, auto: true });
+      loadModel(model, img, { entryRel: name + '/' + name + '.map.json', imgRel: imgRel, imgRoot: 'data', isNew: true, auto: true });
     } catch (e) { VTT.ui.alert({ title: tr('common.attention'), text: errText(e) }); }
   }
 
@@ -221,6 +224,12 @@
       if (!ok) return false;
     }
     try {
+      if (E.imgRoot !== 'maps') {      // первое сохранение новой карты: перенести картинку из временной папки в maps/<имя>/
+        var dir = dirOf(E.entryRel), fname = fileOf(E.imgRel);
+        await H().fs.writeBinary('maps', dir + '/' + fname, await H().fs.readBinary(E.imgRoot, E.imgRel));
+        await H().fs.remove(E.imgRoot, STAGE).catch(function () {});
+        E.imgRoot = 'maps'; E.imgRel = dir + '/' + fname;
+      }
       await H().fs.writeText('maps', E.entryRel, JSON.stringify(M().toMeta(m), null, 2) + '\n');
     } catch (e) { VTT.ui.alert({ title: tr('common.attention'), text: tr('common.saveFailed', { msg: errText(e) }) }); return false; }
     m.origGrid = { width: m.imgW, height: m.imgH };
@@ -509,10 +518,10 @@
     var ok = await VTT.ui.confirm({ title: tr('editor.draft.title'), text: tr('editor.draft.text', { name: d.entryRel }), ok: tr('editor.draft.restore'), cancel: tr('editor.draft.drop') });
     if (!ok) { await clearDraft(); return false; }
     try {
-      var img = await VTT.store._loadImage(H().fs.url('maps', d.imgRel));
+      var img = await VTT.store._loadImage(H().fs.url(d.imgRoot || 'maps', d.imgRel));
       var model = M().fromMeta(d.meta, { width: img.naturalWidth, height: img.naturalHeight });
       model.image = fileOf(d.imgRel);
-      loadModel(model, img, { entryRel: d.entryRel, imgRel: d.imgRel, isNew: !!d.isNew, dirty: true, auto: !!d.auto });
+      loadModel(model, img, { entryRel: d.entryRel, imgRel: d.imgRel, imgRoot: d.imgRoot, isNew: !!d.isNew, dirty: true, auto: !!d.auto });
       return true;
     } catch (e) { toast(errText(e), 4000); return false; }
   }

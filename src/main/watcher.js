@@ -1,6 +1,6 @@
 'use strict';
-// Отслеживание папок карт и «Показа» текущей кампании: fs.watch (recursive) + debounce 500 мс.
-// События уходят в окна как 'watch:change' {kind:'maps'|'media', root, rels:[...]}.
+// Отслеживание папок карт, «Показа» и музыки текущей кампании: fs.watch (recursive) + debounce 500 мс.
+// События уходят в окна как 'watch:change' {kind:'maps'|'media'|'music', root, rels:[...]}.
 const fs = require('fs');
 const campaigns = require('./campaigns');
 const windows = require('./windows');
@@ -15,6 +15,8 @@ function targets(c) {
   if (!c) return out;
   const maps = campaigns.rootPath('maps', c);
   if (maps) out.push({ kind: 'maps', root: 'maps', dir: maps });
+  const music = campaigns.rootPath('music', c);
+  if (music) out.push({ kind: 'music', root: 'music', dir: music });
   for (const m of c.media || []) if (m && m.id && m.path) out.push({ kind: 'media', root: 'media:' + m.id, dir: m.path });
   return out;
 }

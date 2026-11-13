@@ -9,7 +9,7 @@ File access is always `(root, rel)`; `rel` uses `/`, is relative, never contains
 - `maps` — battle maps folder (`*.map.json` + images).
 - `battlelog` — battle log `.md` folder (may be unset / disabled).
 - `media:<id>` — one per entry of `campaign.media`.
-- `music` — stage 4.
+- `music` — music folder (stage 4): subfolders = playlists, files in the root = playlist «Без папки». Audio is played via `userfile://` in the GM window only.
 
 ## API
 ```js
@@ -19,7 +19,7 @@ host.app.defaultDataDir(name) -> absPath    // default data folder for a campaig
 host.app.showWizard()                       // GM window navigates to wizard.html
 host.app.showGm()                           // GM window navigates to gm.html
 
-host.settings.get() -> {lang:'ru', currentCampaign:id|null}
+host.settings.get() -> {lang:'ru', currentCampaign:id|null, musicSink?:deviceId, musicKeys?:{playPause,next,prev,volUp,volDown}}
 host.settings.set(patch) -> settings
 
 host.campaigns.list() -> Campaign[]
@@ -41,7 +41,7 @@ host.archive.import(udbmPath, {mode:'new', dataDir, name?}) -> Campaign   // ext
 host.archive.import(udbmPath, {mode:'replace'}) -> Campaign              // overwrites same-named files in the CURRENT campaign (data + included maps/media/logs in its folders); renderer must call VTT.gm.reinit()
    // errors: ARCHIVE_NOT_UDBM, ARCHIVE_FORMAT:<format> (not udbm/1), DATA_DIR_IN_USE, DATA_DIR_REQUIRED, NO_CAMPAIGN
 
-host.watch.onChange(cb({kind:'maps'|'media', root, rels:[rel]}))   // (sync) returns unsubscribe. fs.watch(recursive) on the maps folder and every media folder of the current campaign, debounced 500 ms; rels are root-relative ('/'). Watchers are rebuilt on every campaigns.onChanged.
+host.watch.onChange(cb({kind:'maps'|'media'|'music', root, rels:[rel]}))   // (sync) returns unsubscribe. fs.watch(recursive) on the maps folder and every media folder of the current campaign, debounced 500 ms; rels are root-relative ('/'). Watchers are rebuilt on every campaigns.onChanged.
 
 host.report.collect(destPath, description) -> destPath   // destPath from dialog.saveFile (one-shot). Writes zip: logs/*.log + description.txt + versions.json (no scenes/images; user home path -> <HOME>), then reveals it in Explorer
 host.report.openIssues()                                // shell.openExternal('https://github.com/KrantOj/universal-dnd-battle-map/issues') — the only URL main will open

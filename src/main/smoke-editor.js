@@ -35,6 +35,7 @@ module.exports = async function editorSmoke(k) {
     await exe(`(function(){var i=document.querySelector('.vtt-ui-input');i.value='${name}';document.querySelector('.vtt-ui-btn-ok').click();})()`);
     await waitEd('!!(VTT.editor._state.model && VTT.editor._state.img)', 10000);
     must((await exe('VTT.editor._state.model.imgW')) === 1218, 'размер картинки');
+    must(!fs.existsSync(path.join(mapsDir, name)), 'до первого сохранения в maps/ не должно быть папки новой карты');
   }, 900);
 
   await step('editor-grid', async () => {

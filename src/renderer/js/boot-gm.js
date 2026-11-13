@@ -7,4 +7,5 @@
   VTT.showcase.init();
   VTT.combat.init();
   VTT.settings.init();
+  VTT.music.init().catch(function (e) { console.warn('music init', e); });
 })();
