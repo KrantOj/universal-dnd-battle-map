@@ -1030,6 +1030,7 @@
         if (S.pending || S.party) { cancelPlacement(); return; }
         if (!$('settingsDlg').hidden) { VTT.settings.close(); return; }
         if (!$('picker').hidden && S.map) { $('picker').hidden = true; return; }
+        if (!e.defaultPrevented && !inputFocused() && !modalOpen()) { try { window.host.windows.exitFullscreen(); } catch (x) { /* ignore */ } }   // ничто не «съело» Esc — выходим из полного экрана
         return;
       }
       if (inputFocused() || modalOpen()) return;

@@ -30,7 +30,7 @@ function build() {
     {
       label: t('menu.view'),
       submenu: [
-        { label: t('menu.view.fullscreen'), role: 'togglefullscreen' },
+        { label: t('menu.view.fullscreen'), accelerator: 'F11', registerAccelerator: false, click: () => windows.toggleFullscreen(null) },
         { label: t('menu.view.reload'), role: 'reload' },
         { label: t('menu.view.devtools'), role: 'toggleDevTools' },
       ],

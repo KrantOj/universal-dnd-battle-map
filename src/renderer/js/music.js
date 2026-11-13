@@ -17,7 +17,7 @@
   var S = {
     camp: null, hasRoot: false, lists: [], listId: null,
     order: [], pos: -1,             // порядок воспроизведения (индексы треков плейлиста) и позиция в нём
-    shuffle: false, repeat: 'off', volume: 0.8, xfade: 2, collapsed: false,
+    shuffle: false, repeat: 'off', autoNext: true, volume: 0.8, xfade: 2, collapsed: false,
     playing: false, loaded: null,   // rel трека, загруженного в активный <audio>
     keys: L.mergeKeys(null), sinkWanted: '', sinkActive: '', devices: [],
     seeking: false, failStreak: 0, scanSeq: 0, ready: false
@@ -43,7 +43,7 @@
   function snapshot() {
     var t = curTrack();
     return { playlist: S.listId, track: t ? t.rel : (S.loaded || null), pos: Math.round((A[cur].currentTime || 0) * 10) / 10,
-      volume: Math.round(S.volume * 100) / 100, shuffle: S.shuffle, repeat: S.repeat, crossfade: S.xfade, collapsed: S.collapsed };
+      volume: Math.round(S.volume * 100) / 100, shuffle: S.shuffle, repeat: S.repeat, crossfade: S.xfade, autoNext: S.autoNext, collapsed: S.collapsed };
   }
   function persist() {
     clearTimeout(saveTimer); saveTimer = null;
@@ -60,7 +60,7 @@
     F = null; applyVolume();
   }
   function tickFade() {
-    if (!F) return;
+    if (!F || !F.t0) return;      // часы перехода стартуют, когда новый трек реально заиграл (событие playing)
     var p = (Date.now() - F.t0) / (F.dur * 1000);
     if (p >= 1) { finishFade(); return; }
     var g = L.fadeGains(p);
@@ -94,7 +94,7 @@
     if (!fade) { try { prev.pause(); } catch (e) { /* ignore */ } G[cur] = 1; }
     var from = prev;
     cur = idx;
-    if (fade) F = { from: from, to: next, t0: Date.now(), dur: xf };
+    if (fade) F = { from: from, to: next, t0: 0, dur: xf };
     applyVolume();
     renderAll();
     var pr = next.play();
@@ -164,6 +164,7 @@
   }
   function setRepeat(r) { S.repeat = r; renderAll(); persistSoon(); }
   function setVolume(v) { S.volume = Math.max(0, Math.min(1, v)); applyVolume(); renderAll(); persistSoon(); }
+  function setAutoNext(v) { S.autoNext = !!v; renderAll(); persistSoon(); }
   function setXfade(v) { S.xfade = L.clampXfade(v); renderAll(); persistSoon(); }
   function seekTo(sec) { var a = A[cur]; if (isFinite(sec)) { try { a.currentTime = Math.max(0, sec); } catch (e) { /* ignore */ } } persistSoon(); }
 
@@ -182,10 +183,11 @@
   }
 
   // ------------------------------------------------------------------ тикер: время, автопереход
+  function autoAllowed() { return S.autoNext || S.repeat === 'track'; }
   function tick() {
     var a = A[cur];
     tickFade();
-    if (S.playing && !F && !advancing && a.duration > 0 && isFinite(a.duration)) {
+    if (S.playing && autoAllowed() && !F && !advancing && a.duration > 0 && isFinite(a.duration)) {
       if (L.shouldStartFade(a.currentTime, a.duration, S.xfade)) {
         var r = L.step({ len: S.order.length, pos: S.pos, dir: 1, repeat: S.repeat, auto: true });
         if (r.pos >= 0) { advancing = true; advance(1, true); return; }
@@ -196,6 +198,7 @@
   function onEnded(a) {
     if (a !== A[cur] || F) return;                 // старый элемент после перехода — не событие
     if (!S.playing) return;
+    if (!autoAllowed()) { S.playing = false; advancing = false; renderAll(); persist(); return; }   // «автопереход» выключен: остановиться в конце трека
     advancing = true; advance(1, true);
   }
 
@@ -228,7 +231,7 @@
     var saved = null;
     try { saved = await H().kv.get('music'); } catch (e) { saved = null; }
     restore = L.normalizeState(saved);
-    S.shuffle = restore.shuffle; S.repeat = restore.repeat; S.volume = restore.volume; S.xfade = restore.crossfade; S.collapsed = restore.collapsed;
+    S.shuffle = restore.shuffle; S.repeat = restore.repeat; S.volume = restore.volume; S.autoNext = restore.autoNext; S.xfade = restore.crossfade; S.collapsed = restore.collapsed;
     applyVolume();
     await scan();
     // вернуть плейлист и трек: загружаем без воспроизведения, чтобы полоса позиции работала
@@ -415,6 +418,7 @@
     rp.classList.toggle('active', S.repeat !== 'off');
     rp.title = tr('music.repeat.' + S.repeat);
     $('muVol').value = String(Math.round(S.volume * 100)); $('muVolVal').textContent = Math.round(S.volume * 100) + '%';
+    $('muAuto').checked = S.autoNext;
     $('muXf').value = String(S.xfade); $('muXfVal').textContent = S.xfade ? tr('music.xfade.sec', { n: S.xfade }) : tr('music.xfade.off');
     renderTracks(); renderTime(); renderDevices();
   }
@@ -433,6 +437,7 @@
     $('muShuffle').onclick = function () { setShuffle(!S.shuffle); };
     $('muRepeat').onclick = function () { setRepeat(L.nextRepeat(S.repeat)); };
     $('muVol').oninput = function () { setVolume(Number($('muVol').value) / 100); };
+    $('muAuto').onchange = function () { setAutoNext($('muAuto').checked); };
     $('muXf').oninput = function () { setXfade(Number($('muXf').value)); };
     $('muSink').onchange = function () { chooseSink($('muSink').value); };
     var sk = $('muSeek');
@@ -461,7 +466,7 @@
       a.preload = 'auto';
       a.addEventListener('ended', function () { onEnded(a); });
       a.addEventListener('error', function () { if (a.getAttribute('src')) onTrackFailed(a, a.error); });
-      a.addEventListener('playing', function () { if (a === A[cur]) S.failStreak = 0; });
+      a.addEventListener('playing', function () { if (a === A[cur]) S.failStreak = 0; if (F && F.to === a && !F.t0) F.t0 = Date.now(); });
       a.addEventListener('loadedmetadata', function () { if (a === A[cur]) renderTime(); });
     });
   }
@@ -487,7 +492,7 @@
   VTT.music = {
     init: init, setKey: setKey, resetKeys: resetKeys, getKeys: function () { return Object.assign({}, S.keys); },
     _state: S, _audio: A, _cur: function () { return cur; },
-    _api: { go: go, next: next, prev: prev, togglePlay: togglePlay, selectList: selectList, setVolume: setVolume, setXfade: setXfade, setShuffle: setShuffle,
+    _api: { go: go, next: next, prev: prev, togglePlay: togglePlay, selectList: selectList, setVolume: setVolume, setXfade: setXfade, setAutoNext: setAutoNext, setShuffle: setShuffle,
             setRepeat: setRepeat, playIndex: playIndex, scan: scan, persist: persist, snapshot: snapshot, applySink: applySink, onDeviceChange: onDeviceChange }
   };
 })();

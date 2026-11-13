@@ -2,6 +2,7 @@
 const { app, BrowserWindow, session } = require('electron');
 const smoke = require('./smoke');
 smoke.early();          // до init логов: smoke подменяет userData
+if (!smoke.enabled && process.env.UDBM_USERDATA) app.setPath('userData', process.env.UDBM_USERDATA);   // для проверок без трогания профиля пользователя
 const logger = require('./log');
 logger.init();
 const protocol = require('./protocol');

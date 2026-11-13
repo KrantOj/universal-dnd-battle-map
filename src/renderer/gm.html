@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="css/showcase.css">
 <link rel="stylesheet" href="css/show-player.css">
 <link rel="stylesheet" href="css/combat.css">
+<link rel="stylesheet" href="css/fshint.css">
 <link rel="stylesheet" href="css/wizard.css">
 <link rel="stylesheet" href="css/music.css">
 </head>
@@ -99,6 +100,7 @@
           </div>
           <div class="mu-line"><span class="mu-ico" data-i18n-title="music.volume.title">🔊</span><input type="range" id="muVol" min="0" max="100" step="1" value="80" data-i18n-title="music.volume.title"><span id="muVolVal" class="muted small mu-val">80%</span></div>
           <div class="mu-line"><span class="muted small mu-lbl" data-i18n="music.xfade"></span><input type="range" id="muXf" min="0" max="10" step="0.5" value="2"><span id="muXfVal" class="muted small mu-val"></span></div>
+          <label class="row chk"><input type="checkbox" id="muAuto" checked> <span data-i18n="music.autoNext"></span></label>
           <div class="mu-line"><span class="muted small mu-lbl" data-i18n="music.sink"></span><select id="muSink" data-i18n-title="music.sink.title"></select></div>
         </div>
       </div>
@@ -331,6 +333,7 @@
 <script src="locales/en.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/errlog.js"></script>
+<script src="js/fshint.js"></script>
 <script src="js/geometry.js"></script>
 <script src="js/movement.js"></script>
 <script src="js/dice.js"></script>

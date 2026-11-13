@@ -115,4 +115,29 @@ module.exports = async function editorSmoke(k) {
     const disk = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
     must(JSON.stringify(JSON.parse(out)) === JSON.stringify(disk), 'повторное чтение и запись меняют файл');
   }, 700);
+
+  await step('editor-multicell-door', async () => {
+    await exe("VTT.editor._api.setTool('wall')");
+    await click(2, 2); await click(8, 2); await key('Enter');
+    await exe("VTT.editor._api.setTool('door')");
+    await ptr('pointerdown', 3.5, 2.02); await ptr('pointermove', 5.5, 2.02); await ptr('pointerup', 5.5, 2.02);
+    const d = await exe('JSON.stringify(VTT.editor._state.model.doors.filter(function(x){return x.dir==="h";}))');
+    must(JSON.stringify(JSON.parse(d)) === JSON.stringify([{ position: { x: 3, y: 2 }, size: [3, 1], dir: 'h', open: false }]), 'дверь 3 клетки: ' + d);
+    const cut = await exe('JSON.stringify(VTT.editorModel.toMeta(VTT.editor._state.model).line_of_sight)');
+    must(cut.indexOf('"x":3,"y":2') >= 0 && cut.indexOf('"x":6,"y":2') >= 0, 'разрыв стены под дверью: ' + cut);
+  }, 600);
+
+  await step('editor-panel-narrow', async () => {
+    const win = windows.getEditorWindow();
+    win.setSize(900, 700); await sleep(400);
+    await exe("VTT.editor._api.setTool('grid')");
+    await sleep(300);
+    const r = await exe('(function(){var s=document.getElementById("edSide");return [s.scrollWidth,s.clientWidth];})()');
+    must(r[0] <= r[1], 'панель обрезана по ширине: ' + JSON.stringify(r));
+    const bad = await exe('(function(){var s=document.getElementById("edSide"),b=s.getBoundingClientRect(),o=[];s.querySelectorAll("input,button,label").forEach(function(e){if(e.offsetParent&&e.getBoundingClientRect().right>b.right+1)o.push(e.id||e.textContent);});return o;})()');
+    must(!bad.length, 'элементы выходят за панель: ' + JSON.stringify(bad));
+    const img = await edWc().capturePage();
+    fs.writeFileSync(path.join(tmp, 'editor-panel-narrow.png'), img.toPNG());
+    console.log('[smoke] editor panel screenshot: ' + path.join(tmp, 'editor-panel-narrow.png'));
+  }, 600);
 };

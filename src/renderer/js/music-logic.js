@@ -11,7 +11,10 @@
   function extOf(name) { var m = /\.([^.\\/]+)$/.exec(String(name || '')); return m ? m[1].toLowerCase() : ''; }
   function isAudio(name) { return EXTS.indexOf(extOf(name)) >= 0; }
   function baseName(rel) { var p = String(rel).split('/'); return p[p.length - 1]; }
-  function titleOf(rel) { return baseName(rel).replace(/\.[^.]+$/, ''); }
+  function titleOf(rel) {
+    var t = baseName(rel).replace(/\.[^.]+$/, '').replace(/_+/g, ' ').replace(/\s+/g, ' ').trim();
+    return t || baseName(rel);
+  }
   function natCmp(a, b) { return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }); }
 
   /** Список файлов корня music (результат host.fs.list(..., {recursive:true})) -> плейлисты.
@@ -164,6 +167,7 @@
       volume: isFinite(v) ? Math.max(0, Math.min(1, v)) : 0.8,
       shuffle: !!s.shuffle,
       repeat: s.repeat === 'track' || s.repeat === 'playlist' ? s.repeat : 'off',
+      autoNext: s.autoNext !== false,
       crossfade: s.crossfade === undefined || s.crossfade === null ? 2 : clampXfade(s.crossfade),
       collapsed: !!s.collapsed
     };

@@ -54,7 +54,11 @@
     return { x: r.left + s.x, y: r.top + s.y };
   }
   function tolCells() { return 9 / (E.model.ppg * E.view.z); }
-  function snap(c, e) { return e && e.altKey ? { x: M().round2(c.fx), y: M().round2(c.fy) } : M().snapPoint(c.fx, c.fy); }
+  function snap(c, e) {
+    var free = !!(e && e.altKey);
+    $('stSnap').textContent = free ? tr('editor.status.free') : '';
+    return free ? { x: M().round2(c.fx), y: M().round2(c.fy) } : M().snapCorner(c.fx, c.fy);
+  }
 
   // ------------------------------------------------------------------ история, черновик, «грязное» состояние
   function isDirty() { return !!E.model && M().snapshot(E.model) !== E.savedSnap; }
@@ -348,9 +352,11 @@
         var s = M().doorSeg(m.doors[di]);
         if (VTT.geometry.distToSegment(c.fx, c.fy, s) < 0.3) { M().removeDoor(m, di, true); E.pv = {}; commit(); return; }
       }
-      var d = M().doorAt(m, c.fx, c.fy);
-      if (!d) { toast(tr('editor.door.needWall')); return; }
-      d.open = E.doorOpen; M().addDoor(m, d); commit();
+      var d = e.shiftKey && E.doorAnchor ? M().doorSpan(m, E.doorAnchor.x, E.doorAnchor.y, c.fx, c.fy) : M().doorAt(m, c.fx, c.fy);
+      if (!d) { toast(tr('editor.door.needWall'), 4000); return; }
+      E.doorAnchor = { x: c.fx, y: c.fy };
+      if (e.shiftKey && M().doorSpanLen(d) > 1) { d.open = E.doorOpen; M().addDoor(m, d); E.pv = {}; commit(); return; }
+      E.drag = { t: 'door', ax: c.fx, ay: c.fy };
     } else if (t === 'terrain' || t === 'elev') {
       var cell = { x: Math.floor(c.fx), y: Math.floor(c.fy) };
       if (E.shape === 'brush') { E.drag = { t: 'paint', done: {} }; paintAt(cell); }
@@ -371,11 +377,12 @@
     if (d && d.t === 'corner') { E.box = { x: Math.min(d.fx, c.px), y: Math.min(d.fy, c.py), w: Math.abs(c.px - d.fx), h: Math.abs(c.py - d.fy) }; applyBox(); }
     else if (d && d.t === 'boxmove') { E.box.x = c.px - d.dx; E.box.y = c.py - d.dy; applyBox(); }
     else if (d && d.t === 'pt') { var p = snap(c, e); M().movePoint(m, d.wi, d.pi, p.x, p.y); d.moved = true; syncSelection(); }
+    else if (d && d.t === 'door') { E.pv.door = M().doorSpan(m, d.ax, d.ay, c.fx, c.fy) || M().doorAt(m, d.ax, d.ay); }
     else if (d && d.t === 'paint') { paintAt({ x: x, y: y }); }
     else if (d && d.t === 'rect') { E.pv.cells = M().rectCells(m, d.x0, d.y0, x, y); }
     else if (t === 'wall') {
       var sn = snap(c, e); E.pv.snap = sn; E.pv.wall = E.wallPts ? E.wallPts.concat([sn]) : null;
-    } else if (t === 'door') { E.pv.door = M().doorAt(m, c.fx, c.fy); }
+    } else if (t === 'door') { E.pv.door = (e.shiftKey && E.doorAnchor && M().doorSpan(m, E.doorAnchor.x, E.doorAnchor.y, c.fx, c.fy)) || M().doorAt(m, c.fx, c.fy); }
     else if (t === 'terrain' || t === 'elev') { E.pv.cells = hoverCells(c); }
     requestDraw();
   }
@@ -384,7 +391,11 @@
     if (E.pan) { E.pan = null; return; }
     var d = E.drag; E.drag = null;
     if (!m || !d) return;
-    if (d.t === 'rect') {
+    if (d.t === 'door') {
+      var dp = pointerPos(e), dc = toCell(dp.x, dp.y), nd = M().doorSpan(m, d.ax, d.ay, dc.fx, dc.fy) || M().doorAt(m, d.ax, d.ay);
+      E.pv.door = null;
+      if (nd) { nd.open = E.doorOpen; M().addDoor(m, nd); commit(); }
+    } else if (d.t === 'rect') {
       var sp = pointerPos(e), c = toCell(sp.x, sp.y);
       applyCells(M().rectCells(m, d.x0, d.y0, Math.floor(c.fx), Math.floor(c.fy))); E.pv.cells = null; commit();
     } else if (d.t === 'paint' || (d.t === 'pt' && d.moved) || d.t === 'corner' || d.t === 'boxmove') commit();
@@ -491,6 +502,19 @@
       if (!E.model) return;
       e.preventDefault(); var p = pointerPos(e); E.view.zoomAt(p.x, p.y, e.deltaY < 0 ? 1.15 : 1 / 1.15); requestDraw();
     }, { passive: false });
+    var rz = $('edResize');
+    function setSide(w) {
+      w = Math.max(240, Math.min(Math.round(w), Math.max(240, window.innerWidth - 360)));
+      $('ed').style.setProperty('--ed-side', w + 'px'); return w;
+    }
+    try { var sw = parseInt(localStorage.getItem('ed-side'), 10); if (sw > 0) setSide(sw); } catch (_) { /* ignore */ }
+    rz.addEventListener('pointerdown', function (e) { rz.setPointerCapture(e.pointerId); rz.classList.add('drag'); rz._on = true; });
+    rz.addEventListener('pointermove', function (e) { if (rz._on) { setSide(window.innerWidth - e.clientX); E.view.resize(); requestDraw(); } });
+    rz.addEventListener('pointerup', function (e) {
+      if (!rz._on) return; rz._on = false; rz.classList.remove('drag');
+      try { localStorage.setItem('ed-side', String(setSide(window.innerWidth - e.clientX))); } catch (_) { /* ignore */ }
+      E.view.resize(); requestDraw();
+    });
     window.addEventListener('keydown', onKey);
     window.addEventListener('keyup', function (e) { if (e.key === ' ') E.space = false; });
     window.addEventListener('blur', function () { E.space = false; });

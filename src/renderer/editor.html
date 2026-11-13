@@ -48,6 +48,7 @@
     <div id="edEmpty" class="ed-empty" data-i18n="editor.empty"></div>
   </main>
 
+  <div id="edResize" data-i18n-title="editor.side.resize"></div>
   <aside id="edSide">
     <section class="ed-sec" id="pMap">
       <h3 data-i18n="editor.sec.map"></h3>
@@ -56,7 +57,7 @@
 
     <section class="ed-sec" id="pGrid" data-for="grid">
       <h3 data-i18n="editor.sec.grid"></h3>
-      <div class="grid2">
+      <div class="grid2 ed-grid2">
         <label><span data-i18n="editor.grid.ppg"></span><input id="gPpg" type="number" min="4" max="1000" step="1"></label>
         <label><span data-i18n="editor.grid.feet"></span><input id="gFeet" type="number" min="1" max="100" step="1"></label>
         <label><span data-i18n="editor.grid.offX"></span><input id="gOffX" type="number" step="1"></label>
@@ -131,7 +132,7 @@
     </section>
   </aside>
 
-  <footer id="edStatus"><span id="stCell"></span><span id="stTool"></span><span id="stZoom"></span><span id="stDirty" class="muted"></span></footer>
+  <footer id="edStatus"><span id="stCell"></span><span id="stTool"></span><span id="stZoom"></span><span id="stSnap" class="warn"></span><span id="stDirty" class="muted"></span></footer>
 </div>
 
 <div id="edStart" class="overlay" hidden>

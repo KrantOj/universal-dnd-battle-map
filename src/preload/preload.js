@@ -99,6 +99,9 @@ contextBridge.exposeInMainWorld('host', {
     isPlayerOpen: () => inv('windows:isPlayerOpen'),
     onPlayerState: (cb) => sub('windows:playerState', cb),
     togglePlayerFullscreen: () => inv('windows:togglePlayerFullscreen'),
+    toggleFullscreen: () => inv('windows:toggleFullscreen'),
+    exitFullscreen: () => inv('windows:exitFullscreen'),
+    onFullscreen: (cb) => sub('window:fullscreen', cb),
   },
   editor: {
     open: (req) => inv('editor:open', req),

@@ -20,6 +20,7 @@ function prepare(tmp) {
   wav(path.join(dir, 'Таверна', '02 Вторая.wav'), 8);
   wav(path.join(dir, 'Бой', 'Атака.wav'), 6);
   wav(path.join(dir, 'Корень.wav'), 4);
+  wav(path.join(dir, '104_River_Town.wav'), 8);   // латиница с подчёркиваниями: название должно показываться
   fs.writeFileSync(path.join(dir, 'Таверна', 'заметка.txt'), 'не аудио');
   return dir;
 }
@@ -32,6 +33,7 @@ async function musicSmoke(k) {
 
   await step('music-playlists', async () => {
     await waitFor(`${M}._state.lists.length === 3`, 8000);
+    must((await ex(`${M}._state.lists[0].tracks.length`)) === 2, 'корневой плейлист: 2 трека');
     const ids = await ex(`${M}._state.lists.map(function(l){return l.id;}).join("|")`);
     must(ids === '.|Бой|Таверна', 'плейлисты: ' + ids);
     must((await ex("document.getElementById('muMain').hidden")) === false, 'панель управления скрыта');
@@ -106,6 +108,38 @@ async function musicSmoke(k) {
     await press('document.body');
     await waitFor(`!${M}._state.playing`, 3000);
   }, 800);
+  await step('music-latin-title-seek-xfade-autonext', async () => {
+    const sel = (id) => ex(`(function(){var s=document.getElementById('muList');s.value=${JSON.stringify(id)};s.dispatchEvent(new Event('change'));})()`);
+    await sel('.');
+    const names = await ex("Array.prototype.map.call(document.querySelectorAll('#muTracks .mu-trk'),function(b){return b.textContent.replace('▶ ','');}).join('|')");
+    must(names === '104 River Town|Корень', 'названия треков: ' + names);
+    // воспроизвести латинский трек, перемотать в середину — позиция не должна вернуться к началу
+    await ex("document.getElementById('muXf').value='10';document.getElementById('muXf').dispatchEvent(new Event('input'))");
+    await ex(`${M}._api.playIndex(0)`);
+    await waitFor(`${M}._state.playing && ${M}._audio[${M}._cur()].currentTime > 0.3`, 8000);
+    await ex("(function(){var s=document.getElementById('muSeek');s.value='2';s.dispatchEvent(new Event('input'));s.dispatchEvent(new Event('change'));})()");
+    await sleep(900);
+    const ct = await ex(`${M}._audio[${M}._cur()].currentTime`);
+    must(ct >= 1.9 && ct < 3.9, 'перемотка вернулась в начало: ' + ct);
+    // кроссфейд 10 с на 8-секундном треке сжимается до 4 с; в середине перехода громкости обоих элементов между 0 и итоговой
+    await ex("document.getElementById('muNext').click()");
+    await sleep(1500);
+    const v = await ex(`(function(){var A=${M}._audio,c=${M}._cur();return {n:A[c].volume,o:A[1-c].volume,op:A[1-c].paused};})()`);
+    must(v.n > 0.02 && v.n < 0.7 && v.o > 0.02 && v.o < 0.8 && !v.op, 'кроссфейд не меняет громкость обоих: ' + JSON.stringify(v));
+    await sleep(3200);
+    const e = await ex(`(function(){var A=${M}._audio,c=${M}._cur();return {old:A[1-c].paused,cur:!A[c].paused};})()`);
+    must(e.old && e.cur, 'кроссфейд не завершился: ' + JSON.stringify(e));
+    // автопереход выключен: трек доиграл — остановка, следующий не запускается
+    await ex("document.getElementById('muXf').value='0';document.getElementById('muXf').dispatchEvent(new Event('input'))");
+    await ex("(function(){var c=document.getElementById('muAuto');c.checked=false;c.dispatchEvent(new Event('change'));})()");
+    await ex(`${M}._api.playIndex(1)`);                // «Корень», 4 с
+    await waitFor(`${M}._state.playing && ${M}._audio[${M}._cur()].currentTime > 0.3`, 6000);
+    await ex(`${M}._audio[${M}._cur()].currentTime = 3.2`);
+    await sleep(2200);
+    const f = await ex(`({p:${M}._state.playing,t:${M}._api.snapshot().track})`);
+    must(f.p === false && f.t === 'Корень.wav', 'автопереход выключен, а плеер пошёл дальше: ' + JSON.stringify(f));
+    must((await ex(`${M}._api.snapshot().autoNext`)) === false, 'autoNext не в снимке');
+  }, 900);
 }
 
 module.exports = musicSmoke;
