@@ -9,7 +9,7 @@
 .mu-val { width: 40px; text-align: right; flex: none; }
 .mu-ico { width: 18px; text-align: center; flex: none; }
 .mu-tracks { max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--line); border-radius: 6px; padding: 3px; background: #0d1117; }
-.mu-trk { text-align: left; overflow: hidden; text-overflow: ellipsis; padding: 3px 6px; font-size: 12px; border-color: transparent; background: transparent; }
+.mu-trk { flex: none; white-space: nowrap; text-align: left; overflow: hidden; text-overflow: ellipsis; padding: 3px 6px; font-size: 12px; border-color: transparent; background: transparent; }
 .mu-trk.cur { background: #1f4a7a; border-color: var(--accent); }
 .mu-title { margin: 8px 0 2px; font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mu-seek { display: flex; align-items: center; gap: 6px; }
