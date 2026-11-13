@@ -1,5 +1,6 @@
 'use strict';
 const fs = require('fs');
+const path = require('path');
 const { app, ipcMain, dialog, shell, BrowserWindow } = require('electron');
 const settings = require('./settings');
 const campaigns = require('./campaigns');
@@ -11,6 +12,8 @@ const logger = require('./log');
 const transfer = require('./transfer');
 const report = require('./report');
 const smoke = require('./smoke');
+const updater = require('./updater');
+const links = require('./links');
 
 const allowedSaves = new Set(); // paths returned by dialog.saveFile, consumable by fs.writeAbs once
 
@@ -28,7 +31,14 @@ function register() {
   const h = (ch, fn) => ipcMain.handle(ch, (e, ...a) => fn(e, ...a));
 
   h('app:version', () => app.getVersion());
-  h('app:platformInfo', () => ({ version: app.getVersion(), electron: process.versions.electron, os: `${process.platform} ${process.getSystemVersion ? process.getSystemVersion() : ''}`.trim() }));
+  h('app:platformInfo', () => ({ version: app.getVersion(), electron: process.versions.electron, chrome: process.versions.chrome, os: `${process.platform} ${process.getSystemVersion ? process.getSystemVersion() : ''}`.trim() }));
+  h('app:openAbout', () => windows.openAbout());
+  h('app:license', () => { try { return fs.readFileSync(path.join(app.getAppPath(), 'LICENSE'), 'utf8'); } catch (_) { return ''; } });
+  h('app:openExternal', (e, url) => { if (!links.isAllowedExternal(url)) throw new Error('URL_NOT_ALLOWED'); return shell.openExternal(String(url)); });
+  h('update:state', () => updater.getState());
+  h('update:check', () => updater.check(true));
+  h('update:install', () => updater.install());
+  h('update:openRelease', () => { const u = updater.getState().url || require('./update-logic').RELEASES_URL; if (!links.isAllowedExternal(u)) throw new Error('URL_NOT_ALLOWED'); return shell.openExternal(u); });
   h('app:defaultDataDir', (e, n) => campaigns.defaultDataDir(n));
   h('app:showWizard', () => windows.showWizard());
   h('app:showGm', () => windows.showGm());
@@ -37,6 +47,7 @@ function register() {
   h('settings:set', (e, p) => {
     const before = settings.get().lang;
     const s = settings.set(p);
+    if (p && 'checkUpdates' in p) updater.onSettingsChanged();
     if (s.lang !== before) { require('./menu').build(); windows.applyLang(); }   // меню — сразу, окна — перезагрузкой
     return s;
   });

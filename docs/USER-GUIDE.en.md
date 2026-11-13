@@ -31,12 +31,14 @@ The app is built for Windows (64-bit) in two flavors. Download the one you want 
 
 | Flavor | File | When to choose it |
 |---|---|---|
-| **Installer (NSIS)** | `Universal DnD Battle map Setup <version>.exe` | A normal installation: choose the folder, desktop shortcut, uninstall from "Apps". Recommended. |
-| **Portable** | `Universal DnD Battle map <version> portable.exe` | No installation: runs from any folder, including a USB stick. Leaves nothing in the system. |
+| **Installer (NSIS)** | `Universal-DnD-Battle-map-Setup-<version>.exe` | A normal installation: choose the folder, desktop shortcut, uninstall from "Apps". Recommended. |
+| **Portable** | `Universal-DnD-Battle-map-<version>-portable.exe` | No installation: runs from any folder, including a USB stick. Leaves nothing in the system. |
 
 **SmartScreen warning.** The files are not signed with a publisher certificate yet, so Windows may show a blue "Windows protected your PC" window the first time. Click **More info → Run anyway**. This is normal for unsigned software; only download files from the project's Releases page.
 
 App settings and campaign profiles live in your user profile (`%APPDATA%\Universal DnD Battle map`). Scenes, the token library and pins live in each campaign's "data folder" (by default `Documents\Universal DnD Battle map\<campaign name>`). Your maps, images and music stay where they are: the app reads them from the folders you choose and never deletes them.
+
+**Updates.** The installed version checks GitHub for a new release on start and every 6 hours; when one is found it downloads it in the background and shows "Install and restart" (your scene is saved first). The portable version only shows "Version X is available" with a link to the release page. Turn this off in Settings → "Check for updates"; **Help → About** has a manual check.
 
 Uninstalling: use Settings → Apps for the installer version; the portable version is just a file you can delete (campaign data stays in `Documents`).
 

@@ -7,6 +7,7 @@ files:
   - package.json
   - tests/fixtures/**
   - build/icon.png
+  - LICENSE
 win:
   icon: build/icon.ico
   target:
@@ -18,9 +19,9 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
-  artifactName: "${productName} Setup ${version}.exe"
+  artifactName: "Universal-DnD-Battle-map-Setup-${version}.exe"
 portable:
-  artifactName: "${productName} ${version} portable.exe"
+  artifactName: "Universal-DnD-Battle-map-${version}-portable.exe"
 publish:
   provider: github
   owner: KrantOj

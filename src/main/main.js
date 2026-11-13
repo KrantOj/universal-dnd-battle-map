@@ -10,6 +10,7 @@ const windows = require('./windows');
 const menu = require('./menu');
 const kv = require('./kv');
 const watcher = require('./watcher');
+const updater = require('./updater');
 
 protocol.registerSchemes();
 
@@ -36,12 +37,13 @@ if (!smoke.enabled && !app.requestSingleInstanceLock()) {
     menu.build();
     windows.watchDisplays();
     watcher.start();
+    if (!smoke.enabled) updater.start();
     if (smoke.enabled) smoke.run(windows, require('./campaigns'));
     else windows.createGmWindow();
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) windows.createGmWindow();
     });
   }).catch((e) => logger.log.error('startup failed', e));
-  app.on('before-quit', () => { kv.flushAll(); watcher.stop(); });
+  app.on('before-quit', () => { kv.flushAll(); watcher.stop(); updater.stop(); });
   app.on('window-all-closed', () => app.quit());
 }

@@ -296,20 +296,26 @@
     if (switched) checkLeftover().catch(function () { /* ignore */ });
   }
   // незакрытый бой с прошлого запуска
-  function checkLeftover() {
+  // silent: перезагрузка окна инициировало само приложение (смена языка) — бой тихо восстанавливается без вопроса
+  function checkLeftover(silent) {
     if (off()) return Promise.resolve();
     return Promise.resolve(VTT.store.getKV(KV)).then(function (old) {
       if (!old || !old.entries || !old.entries.length) return;
       B = old; paintBtn();
+      if (silent) return;
       return promptSave(tr('blog.prompt.leftover', { map: old.map, entries: VTT.i18n.plural(old.entries.length, 'blog.entries') }));
     });
+  }
+  var SILENT_KEY = 'udbm.silentReload';
+  function takeSilentReload() {
+    try { var v = sessionStorage.getItem(SILENT_KEY) === '1'; sessionStorage.removeItem(SILENT_KEY); return v; } catch (e) { return false; }
   }
   function init() {
     var b = document.getElementById('cbSave');
     if (b) b.onclick = function () { save(); };
     var campP = window.host.campaigns.current().then(setCampaign).catch(function () {});
     window.host.campaigns.onChanged(setCampaign);
-    campP.then(checkLeftover).catch(function () { /* ignore */ });
+    campP.then(function () { return checkLeftover(takeSilentReload()); }).catch(function () { /* ignore */ });
     paintBtn();
   }
 

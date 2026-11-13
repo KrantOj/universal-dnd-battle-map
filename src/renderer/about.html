@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' app:; img-src 'self' app: data:">
+<title data-i18n="about.title"></title>
+<link rel="stylesheet" href="css/vtt.css">
+<link rel="stylesheet" href="css/about.css">
+</head>
+<body class="about">
+<main id="ab">
+  <img id="abIcon" src="img/icon.png" alt="" width="96" height="96">
+  <h1>Universal DnD Battle map</h1>
+  <div class="ab-sub" data-i18n="about.subtitle"></div>
+  <div id="abVer" class="ab-ver"></div>
+  <div id="abEng" class="muted small"></div>
+  <p><a id="abRepo" href="#" data-i18n="about.repo"></a></p>
+  <div class="ab-upd">
+    <button id="abCheck" data-i18n="about.check"></button>
+    <button id="abInstall" class="primary" hidden data-i18n="about.install"></button>
+    <button id="abRelease" hidden data-i18n="about.openRelease"></button>
+    <div id="abMsg" class="ab-msg" role="status"></div>
+  </div>
+  <h2 data-i18n="about.license"></h2>
+  <pre id="abLic" class="ab-lic"></pre>
+  <div class="ab-foot"><button id="abClose" data-i18n="about.close"></button></div>
+</main>
+<script src="locales/ru.js"></script>
+<script src="locales/en.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/errlog.js"></script>
+<script src="js/about.js"></script>
+</body>
+</html>

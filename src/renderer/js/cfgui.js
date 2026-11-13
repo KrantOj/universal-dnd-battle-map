@@ -150,7 +150,9 @@
   async function setLanguage(code) {
     if (code === VTT.i18n.lang) return;
     try { if (VTT.gm && VTT.gm.flush) await VTT.gm.flush(); } catch (e) { console.warn('flush', e); }
-    await window.host.settings.set({ lang: code });
+    try { sessionStorage.setItem('udbm.silentReload', '1'); } catch (e) { /* ignore */ }   // после перезагрузки бой восстановится без вопроса «сохранить?»
+    try { await window.host.settings.set({ lang: code }); }
+    catch (e) { try { sessionStorage.removeItem('udbm.silentReload'); } catch (_) { /* ignore */ } throw e; }
   }
 
   VTT.cfg = { LANGS: LANGS, setLanguage: setLanguage, el: el, choose3: choose3, folderRow: folderRow, guardDataDir: guardDataDir, mediaEditor: mediaEditor, checkRow: checkRow };

@@ -1,0 +1,15 @@
+/* окно «О программе» */
+body.about { overflow: auto; background: var(--bg); }
+#ab { padding: 20px 28px 16px; text-align: center; }
+#ab img { display: block; margin: 0 auto 8px; border-radius: 18px; }
+#ab h1 { margin: 4px 0 2px; font-size: 20px; }
+#ab h2 { margin: 16px 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.ab-sub { color: var(--muted); margin-bottom: 8px; }
+.ab-ver { font-size: 16px; font-weight: 600; }
+#ab a { color: var(--accent); text-decoration: none; }
+#ab a:hover { text-decoration: underline; }
+.ab-upd { margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; }
+.ab-msg { flex-basis: 100%; min-height: 1.4em; font-size: 13px; color: var(--muted); }
+.ab-lic { text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.45 Consolas, monospace; color: var(--muted);
+  background: #0d1117; border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 0; max-height: 220px; overflow: auto; }
+.ab-foot { margin-top: 14px; }

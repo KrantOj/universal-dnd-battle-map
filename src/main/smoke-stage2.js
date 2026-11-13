@@ -181,11 +181,11 @@ module.exports = async function stage2(k) {
   await step('2-watch-new-map', async () => {
     const mapsDir = campaigns.current().folders.maps;
     await ex("document.getElementById('picker').hidden = false");
-    const before = await ex("document.querySelectorAll('#mapList button').length");
+    const before = await ex("document.querySelectorAll('#mapList .maprow').length");
     const jf = fs.readdirSync(mapsDir).find((n) => /\.map\.json$/.test(n));
     const meta = fs.readFileSync(path.join(mapsDir, jf), 'utf8');
     fs.writeFileSync(path.join(mapsDir, 'Новая карта.map.json'), meta);
-    await waitFor("document.querySelectorAll('#mapList button').length === " + (before + 1), 6000);
+    await waitFor("document.querySelectorAll('#mapList .maprow').length === " + (before + 1), 6000);
     await ex("document.getElementById('picker').hidden = true");
   });
   await step('2-watch-media', async () => {

@@ -110,3 +110,4 @@ async function musicSmoke(k) {
 
 module.exports = musicSmoke;
 module.exports.prepare = prepare;
+module.exports.wav = wav;
