@@ -57,6 +57,50 @@
     }
   }
 
+  // горячие клавиши музыки: нажать на поле -> нажать сочетание (Esc — отмена, Backspace — снять)
+  function buildKeys(body) {
+    var L = VTT.musicLogic, M = VTT.music, cfg = C(), caps = {};
+    function paint() {
+      var keys = M.getKeys();
+      L.KEY_ACTIONS.forEach(function (a) {
+        var b = caps[a]; b.classList.remove('rec');
+        b.textContent = keys[a] ? L.labelOfSpec(keys[a]) : tr('music.key.none');
+      });
+    }
+    function capture(a) {
+      var b = caps[a];
+      b.classList.add('rec'); b.textContent = tr('music.key.press');
+      function done() { document.removeEventListener('keydown', onKey, true); document.removeEventListener('pointerdown', onAway, true); paint(); }
+      function onAway(ev) { if (ev.target !== b) done(); }
+      function onKey(e) {
+        e.preventDefault(); e.stopPropagation();
+        if (e.key === 'Escape') { done(); return; }
+        var spec = '';
+        if ((e.key === 'Backspace' || e.key === 'Delete') && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) spec = '';
+        else { spec = L.specFromEvent(e); if (!spec) return; }
+        done();
+        M.setKey(a, spec).then(function (r) {
+          paint();
+          if (!r.ok) msg(r.reason === 'invalid' ? tr('music.key.invalid') : tr('common.saveFailed', { msg: r.reason }), true);
+          else msg(r.cleared ? tr('music.key.moved', { name: tr('music.key.' + r.cleared) }) : tr('settings.saved'));
+        });
+      }
+      document.addEventListener('keydown', onKey, true);
+      document.addEventListener('pointerdown', onAway, true);
+    }
+    L.KEY_ACTIONS.forEach(function (a) {
+      var row = cfg.el('div', 'cfg-key');
+      row.appendChild(cfg.el('div', 'cfg-lbl', tr('music.key.' + a)));
+      var b = cfg.el('button', 'cap'); b.type = 'button'; b.onclick = function () { capture(a); };
+      caps[a] = b; row.appendChild(b);
+      body.appendChild(row);
+    });
+    var reset = cfg.el('button', null, tr('music.key.reset')); reset.type = 'button';
+    reset.onclick = function () { M.resetKeys().then(function () { paint(); msg(tr('settings.saved')); }); };
+    var rr = cfg.el('div', 'cfg-row'); rr.appendChild(reset); body.appendChild(rr);
+    paint();
+  }
+
   function build() {
     var body = $('setBody');
     body.textContent = '';
@@ -82,6 +126,13 @@
     body.appendChild(cfg.el('h3', null, tr('show.categories.title')));
     var ed = cfg.mediaEditor(camp.media || [], function () { update({ media: ed.get() }); });
     body.appendChild(ed.el);
+
+    // музыка
+    body.appendChild(cfg.el('h3', null, tr('music.section')));
+    body.appendChild(cfg.folderRow({ label: tr('music.folderLabel'), value: camp.folders.music, empty: tr('common.notPicked'), pickTitle: tr('music.pickTitle'), clearable: true,
+      onChange: function (p) { update({ folders: { music: p } }); } }).el);
+    body.appendChild(cfg.el('div', 'cfg-note', tr('music.keys.note')));
+    buildKeys(body);
 
     // журнал боя
     body.appendChild(cfg.el('h3', null, tr('blog.section')));

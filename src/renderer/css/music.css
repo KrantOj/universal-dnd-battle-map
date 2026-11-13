@@ -1,0 +1,23 @@
+/* панель «Музыка» (правая колонка мастера) */
+#muHead { cursor: pointer; user-select: none; display: flex; align-items: baseline; gap: 4px; }
+#muHead .mu-now { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: none; letter-spacing: 0; font-size: 12px; text-align: right; }
+#muCaret { display: inline-block; width: 12px; }
+.mu-line { display: flex; align-items: center; gap: 6px; margin: 5px 0; }
+.mu-line select { flex: 1; min-width: 0; }
+.mu-line input[type=range] { flex: 1; min-width: 0; padding: 0; }
+.mu-lbl { width: 62px; flex: none; }
+.mu-val { width: 40px; text-align: right; flex: none; }
+.mu-ico { width: 18px; text-align: center; flex: none; }
+.mu-tracks { max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--line); border-radius: 6px; padding: 3px; background: #0d1117; }
+.mu-trk { text-align: left; overflow: hidden; text-overflow: ellipsis; padding: 3px 6px; font-size: 12px; border-color: transparent; background: transparent; }
+.mu-trk.cur { background: #1f4a7a; border-color: var(--accent); }
+.mu-title { margin: 8px 0 2px; font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mu-seek { display: flex; align-items: center; gap: 6px; }
+.mu-seek input { flex: 1; min-width: 0; padding: 0; }
+.mu-seek span { width: 38px; text-align: center; flex: none; }
+.mu-ctl { display: flex; gap: 4px; justify-content: space-between; margin: 6px 0; }
+.mu-ctl button { flex: 1; padding: 4px 0; }
+.cfg-key { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+.cfg-key .cfg-lbl { width: 190px; margin: 0; }
+.cfg-key button.cap { min-width: 150px; text-align: left; font-family: inherit; }
+.cfg-key button.cap.rec { border-color: var(--neutral); color: var(--neutral); }

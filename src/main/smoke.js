@@ -88,7 +88,7 @@ async function run(windows, campaigns) {
         await waitFor("!!document.getElementById('wzNext')");
         const t = await ex("document.getElementById('wzTitle').textContent");
         if (!t) throw new Error('wizard title empty');
-        for (let i = 0; i < 6; i++) { await ex("document.getElementById('wzNext').click()"); await sleep(250); }
+        for (let i = 0; i < 7; i++) { await ex("document.getElementById('wzNext').click()"); await sleep(250); }
         const nextTxt = await ex("document.getElementById('wzNext').textContent");
         if (nextTxt !== i18n.t('wizard.btn.create')) throw new Error('did not reach last wizard step: ' + nextTxt);
       });
@@ -103,11 +103,18 @@ async function run(windows, campaigns) {
     fs.copyFileSync(path.join(appPath, 'build', 'icon.png'), path.join(mediaDir, 'Herb.png'));
     campaigns.create({
       name: 'Smoke',
-      folders: { data: path.join(tmp, 'data'), maps: mapsDir, battlelog: path.join(tmp, 'log') },
+      folders: { data: path.join(tmp, 'data'), maps: mapsDir, battlelog: path.join(tmp, 'log'), music: require('./smoke-music').prepare(tmp) },
       media: [{ id: 'm1', label: 'Картинки', path: mediaDir }],
       playerWindow: { auto: false },
     });
     await windows.createGmWindow();
+
+    if (only === 'music') {
+      await step('init', async () => { await waitFor("!!(window.VTT && VTT.gm && VTT.music && document.querySelectorAll('#mapList button').length)", 15000); });
+      await require('./smoke-music')({ windows, campaigns, tmp, ex, waitFor, step, sleep });
+      clearTimeout(watchdog);
+      return finish(report.errors.length || report.consoleErrors.length ? 1 : 0);
+    }
 
     if (only === 'editor') {
       await step('init', async () => { await waitFor("!!(window.VTT && VTT.gm && document.querySelectorAll('#mapList button').length)", 15000); });

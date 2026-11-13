@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="css/show-player.css">
 <link rel="stylesheet" href="css/combat.css">
 <link rel="stylesheet" href="css/wizard.css">
+<link rel="stylesheet" href="css/music.css">
 </head>
 <body>
 <div id="app">
@@ -68,6 +69,35 @@
   </main>
 
   <aside id="panel" class="gm-only">
+    <section id="musicSec">
+      <h3 id="muHead" role="button" tabindex="0"><span id="muCaret">▾</span> <span data-i18n="music.title"></span> <span id="muNow" class="muted mu-now"></span></h3>
+      <div id="muBody">
+        <div id="muSetup" hidden>
+          <div class="muted small" data-i18n="music.noFolder"></div>
+          <button id="muPick" class="wide primary" data-i18n="music.pickFolder"></button>
+        </div>
+        <div id="muEmpty" hidden>
+          <div class="muted small" data-i18n="music.empty"></div>
+          <div class="btnrow tight"><button id="muRescan2" data-i18n="music.rescan"></button><button id="muPick2" data-i18n="music.changeFolder"></button></div>
+        </div>
+        <div id="muMain">
+          <div class="mu-line"><select id="muList" data-i18n-title="music.list.title"></select><button id="muRescan" data-i18n-title="music.rescan.title">⟳</button></div>
+          <div id="muTracks" class="mu-tracks"></div>
+          <div id="muTitle" class="mu-title"></div>
+          <div class="mu-seek"><span id="muCur" class="muted small">0:00</span><input type="range" id="muSeek" min="0" max="1" step="0.1" value="0" data-i18n-title="music.seek.title"><span id="muDur" class="muted small">0:00</span></div>
+          <div class="mu-ctl">
+            <button id="muPrev" data-i18n-title="music.prev.title">⏮</button>
+            <button id="muPlay" class="primary" data-i18n-title="music.play.title">▶</button>
+            <button id="muNext" data-i18n-title="music.next.title">⏭</button>
+            <button id="muShuffle" data-i18n-title="music.shuffle.title">🔀</button>
+            <button id="muRepeat">🔁</button>
+          </div>
+          <div class="mu-line"><span class="mu-ico" data-i18n-title="music.volume.title">🔊</span><input type="range" id="muVol" min="0" max="100" step="1" value="80" data-i18n-title="music.volume.title"><span id="muVolVal" class="muted small mu-val">80%</span></div>
+          <div class="mu-line"><span class="muted small mu-lbl" data-i18n="music.xfade"></span><input type="range" id="muXf" min="0" max="10" step="0.5" value="2"><span id="muXfVal" class="muted small mu-val"></span></div>
+          <div class="mu-line"><span class="muted small mu-lbl" data-i18n="music.sink"></span><select id="muSink" data-i18n-title="music.sink.title"></select></div>
+        </div>
+      </div>
+    </section>
     <section id="combatSec">
       <h3><span data-i18n="combat.title"></span> <span id="cbState" class="muted"></span></h3>
       <div class="btnrow tight">
@@ -303,11 +333,13 @@
 <script src="js/tokens-draw.js"></script>
 <script src="js/render.js"></script>
 <script src="js/sync.js"></script>
+<script src="js/music-logic.js"></script>
 <script src="js/media-filter.js"></script>
 <script src="js/media.js"></script>
 <script src="js/showcase.js"></script>
 <script src="js/battlelog.js"></script>
 <script src="js/combat.js"></script>
+<script src="js/music.js"></script>
 <script src="js/cfgui.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/campaigns-ui.js"></script>

@@ -44,7 +44,7 @@
 | `maps` | `campaign.folders.maps` | `*.map.json` и картинки карт |
 | `battlelog` | `campaign.folders.battlelog` | журнал боёв `.md`; `null`, если `battlelog.enabled === false` |
 | `media:<id>` | `campaign.media[i].path` | по одному корню на каждый источник картинок «Показа» |
-| `music` | `campaign.folders.music` | зарезервировано (этап 4) |
+| `music` | `campaign.folders.music` | музыка мастера: подпапки = плейлисты (`js/music.js`, чистая логика — `js/music-logic.js`); играет только в окне мастера, kv-ключ `music` |
 
 Незаданный корень → ошибка `ROOT_NOT_SET:<root>`.
 
@@ -93,6 +93,7 @@ src/renderer/
   css/   vtt.css ui.css showcase.css show-player.css combat.css wizard.css
   js/
     geometry.js movement.js dice.js ui.js        чистые модули (ui — с DOM)
+    music-logic.js music.js                      плейлисты/кроссфейд/хоткеи (чистая логика) и плеер (два <audio>, setSinkId)
     store.js tokens-draw.js render.js sync.js media.js
     showcase.js battlelog.js combat.js cfgui.js settings.js wizard.js
     gm.js player.js boot-gm.js boot-player.js
@@ -100,8 +101,8 @@ tests/   node --test; fixtures/demo.map.json и картинка к нему
 docs/    HOST-API.md, MAP-FORMAT.md, ARCHITECTURE.md
 ```
 
-Порядок подключения в `gm.html`: geometry → movement → dice → ui → store → tokens-draw → render → sync → media →
-showcase → battlelog → combat → cfgui → settings → gm → boot-gm.
+Порядок подключения в `gm.html`: geometry → movement → dice → ui → store → tokens-draw → render → sync → music-logic → media →
+showcase → battlelog → combat → music → cfgui → settings → gm → boot-gm.
 В `player.html`: geometry → movement → dice → tokens-draw → render → sync → player → boot-player.
 
 ## 4. Модель данных

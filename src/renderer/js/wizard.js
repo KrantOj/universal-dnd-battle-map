@@ -7,7 +7,7 @@
   function $(id) { return document.getElementById(id); }
 
   var D = {
-    name: '', dataDir: null, mapsDir: null, media: [],
+    name: '', dataDir: null, mapsDir: null, musicDir: null, media: [],
     logEnabled: true, logDir: null, playerAuto: true
   };
   var hasCampaign = false;
@@ -57,6 +57,15 @@
       skippable: true, reset: function () { D.media = []; }
     },
     {
+      title: tr('music.section'),
+      render: function (b) {
+        b.appendChild(el('p', 'wz-lead', tr('wizard.step.music.lead')));
+        b.appendChild(cfg.folderRow({ value: D.musicDir, empty: tr('common.notPicked'), pickTitle: tr('music.pickTitle'), clearable: true,
+          onChange: function (p) { D.musicDir = p; } }).el);
+      },
+      skippable: true, reset: function () { D.musicDir = null; }
+    },
+    {
       title: tr('blog.section'),
       render: function (b) {
         b.appendChild(el('p', 'wz-lead', tr('wizard.step.log.lead')));
@@ -88,6 +97,7 @@
         line(tr('wizard.sum.data'), D.dataDir || D.defDir || tr('wizard.sum.dataDefault'));
         line(tr('wizard.sum.maps'), D.mapsDir || tr('common.notPicked'));
         line(tr('show.categories.title'), D.media.length ? D.media.map(function (m) { return m.label; }).join(', ') : tr('wizard.sum.none'));
+        line(tr('music.section'), D.musicDir || tr('common.notPicked'));
         line(tr('blog.section'), D.logEnabled ? (D.logDir || tr('wizard.sum.logNoFolder')) : tr('wizard.sum.logOff'));
         line(tr('settings.playerWindow'), D.playerAuto ? tr('wizard.sum.playerAuto') : tr('wizard.sum.playerManual'));
         b.appendChild(sum);
@@ -115,6 +125,7 @@
       var folders = {};
       if (D.dataDir) folders.data = D.dataDir;
       if (D.mapsDir) folders.maps = D.mapsDir;
+      if (D.musicDir) folders.music = D.musicDir;
       if (D.logDir && D.logEnabled) folders.battlelog = D.logDir;
       await window.host.campaigns.create({
         name: D.name.trim() || tr('wizard.defaultName'),
