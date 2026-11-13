@@ -171,6 +171,8 @@
     c.forEach(function (p) { var d = (p.x - x) * (p.x - x) + (p.y - y) * (p.y - y); if (d < bd) { bd = d; best = p; } });
     return best;
   }
+  /** Привязка только к углам клеток: на таких стенах работают двери любой длины. */
+  function snapCorner(x, y) { return { x: Math.round(x), y: Math.round(y) }; }
   function round2(v) { return Math.round(v * 100) / 100; }
   function dedupe(pts) {
     var out = [];
@@ -260,10 +262,55 @@
     }
     return best;
   }
+  /** Прямые участки стен на одной линии (dir 'h': y=line; 'v': x=line) как интервалы [lo, hi] вдоль оси. */
+  function wallRuns(m, dir, line) {
+    var out = [];
+    for (var i = 0; i < m.walls.length; i++) {
+      for (var k = 0; k + 1 < m.walls[i].length; k++) {
+        var a = m.walls[i][k], b = m.walls[i][k + 1];
+        if (dir === 'h' ? (Math.abs(a.y - b.y) < EPS && Math.abs(a.y - line) < EPS) : (Math.abs(a.x - b.x) < EPS && Math.abs(a.x - line) < EPS)) {
+          out.push(dir === 'h' ? [Math.min(a.x, b.x), Math.max(a.x, b.x)] : [Math.min(a.y, b.y), Math.max(a.y, b.y)]);
+        }
+      }
+    }
+    return out;
+  }
+  /** Интервал [lo, hi] целиком покрыт стенами (участки могут быть разными отрезками/ломаными). */
+  function runCovered(runs, lo, hi) {
+    runs = runs.slice().sort(function (p, q) { return p[0] - q[0]; });
+    var reach = lo;
+    for (var i = 0; i < runs.length && reach < hi - EPS; i++) {
+      if (runs[i][0] <= reach + EPS && runs[i][1] > reach) reach = runs[i][1];
+    }
+    return reach >= hi - EPS;
+  }
+  /** Дверь длиной в несколько клеток между двумя точками (в клетках) на одной прямой стене по линии сетки.
+   *  Начало — дверь в клетке под (ax, ay); конец — клетка под (bx, by) вдоль той же стены. null — нет цельной стены под всей дверью. */
+  function doorSpan(m, ax, ay, bx, by, tol) {
+    var d0 = doorAt(m, ax, ay, tol);
+    if (!d0) return null;
+    var horiz = d0.dir === 'h', line = horiz ? d0.position.y : d0.position.x;
+    var u0 = horiz ? d0.position.x : d0.position.y, u1 = Math.floor((horiz ? bx : by) + EPS);
+    var lo = Math.min(u0, u1), hi = Math.max(u0, u1) + 1;
+    // конец за краем стены — урезать до ближайшей цельной длины
+    var runs = wallRuns(m, d0.dir, line);
+    while (hi - lo > 1 && !runCovered(runs, lo, hi)) { if (u1 < u0) lo++; else hi--; }
+    if (!runCovered(runs, lo, hi)) return null;
+    return {
+      position: horiz ? { x: lo, y: line } : { x: line, y: lo },
+      size: horiz ? [hi - lo, 1] : [1, hi - lo], dir: d0.dir, open: false
+    };
+  }
+  function doorSpanLen(d) { var s = doorSeg(d); return Math.max(Math.abs(s.x2 - s.x1), Math.abs(s.y2 - s.y1)); }
+  /** Добавить дверь; если она пересекается с уже стоящей на той же линии — возвращается индекс той двери. */
   function addDoor(m, d) {
+    var s = doorSeg(d);
     for (var i = 0; i < m.doors.length; i++) {
       var o = m.doors[i];
-      if (o.dir === d.dir && o.position.x === d.position.x && o.position.y === d.position.y) return i;
+      if (o.dir !== d.dir) continue;
+      var t = doorSeg(o);
+      if (d.dir === 'h' ? (Math.abs(t.y1 - s.y1) < EPS && Math.min(t.x2, s.x2) - Math.max(t.x1, s.x1) > EPS)
+        : (Math.abs(t.x1 - s.x1) < EPS && Math.min(t.y2, s.y2) - Math.max(t.y1, s.y1) > EPS)) return i;
     }
     m.doors.push(d);
     return m.doors.length - 1;
@@ -420,6 +467,11 @@
       if (dedupe(pl).length < 2) degenerate++;
       for (k = 0; k < pl.length; k++) if (pl[k].x < -EPS || pl[k].y < -EPS || pl[k].x > m.cols + EPS || pl[k].y > m.rows + EPS) { outside++; break; }
     }
+    var offGrid = 0;
+    for (i = 0; i < m.walls.length; i++) {
+      for (k = 0; k < m.walls[i].length; k++) if (!isInt(m.walls[i][k].x) || !isInt(m.walls[i][k].y)) { offGrid++; break; }
+    }
+    if (offGrid) add('warn', 'wallOffGrid', { n: offGrid });
     if (outside) add('warn', 'wallOutside', { n: outside });
     if (degenerate) add('warn', 'wallShort', { n: degenerate });
     // клетки
@@ -451,7 +503,7 @@
     create: create, fromMeta: fromMeta, toMeta: toMeta,
     autoSize: autoSize, gridFromBox: gridFromBox, gridFromSpan: gridFromSpan, resize: resize,
     snapshot: snapshot, restore: restore, History: History,
-    snapPoint: snapPoint, round2: round2, addWall: addWall, hit: hit, movePoint: movePoint, deletePoint: deletePoint,
+    snapPoint: snapPoint, snapCorner: snapCorner, doorSpan: doorSpan, doorSpanLen: doorSpanLen, round2: round2, addWall: addWall, hit: hit, movePoint: movePoint, deletePoint: deletePoint,
     deleteWall: deleteWall, deleteSegment: deleteSegment, insertPoint: insertPoint,
     doorSeg: doorSeg, doorAt: doorAt, addDoor: addDoor, removeDoor: removeDoor, cutWalls: cutWalls,
     kindOf: kindOf, setKind: setKind, setElev: setElev, brushCells: brushCells, rectCells: rectCells, floodCells: floodCells,

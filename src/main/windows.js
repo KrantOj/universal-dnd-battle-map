@@ -19,6 +19,26 @@ let editorForceClose = false;
 
 const stateFile = () => path.join(app.getPath('userData'), 'window-state.json');
 
+/** F11 — полный экран окна (мастер и игроки); Esc — выход из полного экрана в окне игроков (в окне мастера Esc обрабатывает страница:
+ *  её диалоги и инструменты Esc «съедают» первыми). Через BrowserWindow.setFullScreen — состояние окна одно на всех способах входа. */
+function bindFullscreenKeys(win, escExits) {
+  win.webContents.on('before-input-event', (e, input) => {
+    if (input.type !== 'keyDown' || input.alt || input.control || input.meta || input.shift) return;
+    if (input.key === 'F11') { e.preventDefault(); win.setFullScreen(!win.isFullScreen()); }
+    else if (escExits && input.key === 'Escape' && win.isFullScreen()) { e.preventDefault(); win.setFullScreen(false); }
+  });
+  const notify = (on) => { if (!win.isDestroyed()) win.webContents.send('window:fullscreen', on); };
+  win.on('enter-full-screen', () => notify(true));
+  win.on('leave-full-screen', () => notify(false));
+}
+/** Окно, к которому относится команда (меню / IPC): сфокусированное мастер/игроки, иначе мастер. */
+function fullscreenTarget(wc) {
+  const cands = [gmWindow, playerWindow].filter((w) => w && !w.isDestroyed());
+  return (wc && cands.find((w) => w.webContents === wc)) || cands.find((w) => w.isFocused()) || cands[0] || null;
+}
+function toggleFullscreen(wc) { const w = fullscreenTarget(wc); if (w) w.setFullScreen(!w.isFullScreen()); }
+function exitFullscreen(wc) { const w = fullscreenTarget(wc); if (w && w.isFullScreen()) w.setFullScreen(false); }
+
 function secure(win, label) {
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', (e) => e.preventDefault());
@@ -79,6 +99,7 @@ function createGmWindow() {
   }, st.opts));
   gmWindow = win;
   secure(win, 'gm');
+  bindFullscreenKeys(win, false);
   if (st.maximized) win.maximize();
   win.show();
   let t = null;
@@ -132,7 +153,14 @@ function openEditor(req) {
     clearTimeout(tm); saveGmState(win, 'editor');
     if (editorDirty && !editorForceClose) { e.preventDefault(); win.webContents.send('editor:confirmClose'); }
   });
-  win.on('closed', () => { if (editorWindow === win) editorWindow = null; editorDirty = false; });
+  win.on('closed', () => {
+    if (editorWindow === win) editorWindow = null;
+    editorDirty = false;
+    if (gmWindow && !gmWindow.isDestroyed()) {    // закрыли редактор — сразу вернуть главное окно мастера
+      if (gmWindow.isMinimized()) gmWindow.restore();
+      gmWindow.show(); gmWindow.focus();
+    }
+  });
   return load(win, 'editor.html');
 }
 function takeEditorRequest() { const r = editorRequest; editorRequest = null; return r; }
@@ -228,6 +256,7 @@ function openPlayer() {
   playerWindow = win;
   win.setMenu(null);
   secure(win, 'player');
+  bindFullscreenKeys(win, true);
   win.on('closed', () => { if (playerWindow === win) playerWindow = null; emitPlayerState(); });
   place(win);
   win.show();
@@ -264,5 +293,5 @@ function broadcast(channel, ...args) {
 
 module.exports = {
   createGmWindow, getGmWindow, openEditor, getEditorWindow, getAboutWindow, openAbout, isEditorOpen, takeEditorRequest, setEditorDirty, forceCloseEditor, openInGm, getPlayerWindow, showWizard, showGm, applyLang,
-  openPlayer, closePlayer, isPlayerOpen, togglePlayerFullscreen, watchDisplays, relay, broadcast, emitPlayerState,
+  openPlayer, closePlayer, isPlayerOpen, togglePlayerFullscreen, toggleFullscreen, exitFullscreen, watchDisplays, relay, broadcast, emitPlayerState,
 };

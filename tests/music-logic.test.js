@@ -90,10 +90,12 @@ test('время и состояние', () => {
   assert.strictEqual(L.fmtTime(0), '0:00'); assert.strictEqual(L.fmtTime(65.9), '1:05'); assert.strictEqual(L.fmtTime(3600 + 61), '1:01:01');
   assert.strictEqual(L.fmtTime(NaN), '0:00'); assert.strictEqual(L.fmtTime(-1), '0:00');
   const d = L.normalizeState(null);
-  D(d, { playlist: null, track: null, pos: 0, volume: 0.8, shuffle: false, repeat: 'off', crossfade: 2, collapsed: false });
+  D(d, { playlist: null, track: null, pos: 0, volume: 0.8, shuffle: false, repeat: 'off', autoNext: true, crossfade: 2, collapsed: false });
   const s = L.normalizeState({ playlist: 'Бой', track: 'Бой/a.mp3', pos: 12.5, volume: 7, shuffle: 1, repeat: 'track', crossfade: 99 });
   D([s.playlist, s.track, s.pos, s.volume, s.shuffle, s.repeat, s.crossfade], ['Бой', 'Бой/a.mp3', 12.5, 1, true, 'track', 10]);
   assert.strictEqual(L.normalizeState({ repeat: 'bad', crossfade: 0 }).crossfade, 0);
+  assert.strictEqual(L.normalizeState({ autoNext: false }).autoNext, false);
+  assert.strictEqual(L.normalizeState({ autoNext: 0 }).autoNext, true);
 });
 
 test('горячие клавиши: спецификации, допустимость, поиск действия', () => {
@@ -114,4 +116,24 @@ test('горячие клавиши: спецификации, допустим�
   // умолчания не конфликтуют с клавишами мастера (V R H D N B 0-9 стрелки Delete Ctrl+Z ? Space F)
   for (const a of L.KEY_ACTIONS) assert.ok(L.validHotkey(L.DEFAULT_KEYS[a]), a);
   assert.strictEqual(new Set(Object.values(L.DEFAULT_KEYS)).size, L.KEY_ACTIONS.length);
+});
+
+test('названия треков: латиница, подчёркивания -> пробелы, расширение убрано', () => {
+  assert.strictEqual(L.titleOf('104_River_Town.mp3'), '104 River Town');
+  assert.strictEqual(L.titleOf('Boss/Clash_of_Steel.MP3'), 'Clash of Steel');
+  assert.strictEqual(L.titleOf('Таверна/01 Первая.wav'), '01 Первая');
+  assert.strictEqual(L.titleOf('___.mp3'), '___.mp3');
+  const pl = L.buildPlaylists([{ rel: '104_River_Town.mp3' }, { rel: 'Clash_of_Steel.mp3' }]);
+  D(pl[0].tracks.map((t) => t.title), ['104 River Town', 'Clash of Steel']);
+});
+
+test('кроссфейд: короткие треки — не больше половины длины, ползунок в пределах 0..10', () => {
+  assert.strictEqual(L.effectiveXfade(10, 6), 3);
+  assert.strictEqual(L.effectiveXfade(2, 60), 2);
+  const s = L.schedule(6, 10);
+  assert.strictEqual(s.xf, 3); assert.strictEqual(s.startAt, 3);
+  assert.ok(L.shouldStartFade(3.1, 6, 10) && !L.shouldStartFade(2.9, 6, 10) && !L.shouldStartFade(5, 6, 0));
+  const g = L.fadeGains(0.5);
+  assert.ok(Math.abs(g.out * g.out + g.in * g.in - 1) < 1e-9);
+  D([L.fadeGains(0), L.fadeGains(1)].map((x) => [Math.round(x.out), Math.round(x.in)]), [[1, 0], [0, 1]]);
 });

@@ -136,6 +136,8 @@ function register() {
   h('windows:closePlayer', () => windows.closePlayer());
   h('windows:isPlayerOpen', () => windows.isPlayerOpen());
   h('windows:togglePlayerFullscreen', () => windows.togglePlayerFullscreen());
+  h('windows:toggleFullscreen', (e) => windows.toggleFullscreen(e.sender));
+  h('windows:exitFullscreen', (e) => windows.exitFullscreen(e.sender));
 
   ipcMain.on('sync:send', (e, msg) => windows.relay(e.sender, msg));
   h('log:openFolder', () => logger.openFolder());

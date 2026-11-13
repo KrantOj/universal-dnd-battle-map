@@ -232,7 +232,7 @@
 
   // ---- бросок кубиков, показанный мастером ----
   var rollEl = null, rollTimer = null, rollQ = [], rollBusy = false;
-  // броски идут по очереди (инициатива всей партии), каждый виден ~2,5 с; одиночный — 5 с
+  // броски идут по очереди (инициатива всей партии): каждый ~1,2 с; одиночный виден ~2,5 с (бросок 0,6 с + результат)
   function showRoll(msg) {
     rollQ.push(msg);
     if (!rollBusy) nextRoll();
@@ -241,10 +241,10 @@
     var msg = rollQ.shift();
     if (!msg) { rollBusy = false; return; }
     rollBusy = true;
-    displayRoll(msg, rollQ.length ? 2700 : 5200);
+    displayRoll(msg, rollQ.length ? 1200 : 2500);
   }
   var rollLand = null, rollFlick = null;
-  var THROW_MS = 1150;   // длительность броска (CSS-анимация rsThrow в combat.css)
+  var THROW_MS = 600;   // длительность броска (CSS-анимация rsThrow в combat.css)
   function q(sel) { return rollEl.querySelector(sel); }
   // Кубик влетает, кувыркается, подпрыгивает и замирает на результате (как в Baldur's Gate 3); числа на нём мелькают.
   function displayRoll(msg, ms) {
@@ -278,7 +278,7 @@
       clearInterval(rollFlick);
       if (rollQ.length) nextRoll();
       else { rollEl.classList.remove('on'); rollBusy = false; }
-    }, Math.max(ms, THROW_MS + 1200));
+    }, Math.max(ms, THROW_MS + 600));
   }
 
   function toggleFullscreen() {

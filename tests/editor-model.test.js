@@ -190,3 +190,36 @@ test('проверка: дверь не на стене, сетка вне ка�
   m2.layers.terrain[0][0] = '';
   assert.ok(EM.validate(m2).some((v) => v.code === 'emptyTerrain'));
 });
+
+test('дверь в несколько клеток: size, разрыв стены, совместимость с geometry', () => {
+  const m = EM.create({ name: 'W', image: 'a.png', imgW: 700, imgH: 700, ppg: 70 });
+  EM.addWall(m, [P(1, 2), P(8, 2)]);
+  const d = EM.doorSpan(m, 3.4, 2.05, 5.6, 2.1);
+  deq(d, { position: P(3, 2), size: [3, 1], dir: 'h', open: false });
+  EM.addDoor(m, d);
+  deq(EM.toMeta(m).line_of_sight, [[P(1, 2), P(3, 2)], [P(6, 2), P(8, 2)]]);
+  deq(G.segmentsFromMap(EM.toMeta(m)).doors[0], { x1: 3, y1: 2, x2: 6, y2: 2 });
+  assert.strictEqual(EM.addDoor(m, { position: P(5, 2), size: [1, 1], dir: 'h', open: false }), 0, 'пересекающаяся дверь не добавляется');
+  // против направления и за край стены — урезается до стены
+  deq(EM.doorSpan(m, 7.5, 2, 12, 2).size, [1, 1]);
+  const v = EM.create({ name: 'V', image: 'a.png', imgW: 700, imgH: 700, ppg: 70 });
+  EM.addWall(v, [P(2, 0), P(2, 2)]); EM.addWall(v, [P(2, 2), P(2, 5)]);
+  const dv = EM.doorSpan(v, 2, 0.5, 2, 3.5);
+  deq(dv, { position: P(2, 0), size: [1, 4], dir: 'v', open: false }, 'дверь через две полилинии');
+  EM.addDoor(v, dv);
+  deq(G.segmentsFromMap(EM.toMeta(v)).doors[0], { x1: 2, y1: 0, x2: 2, y2: 4 });
+  assert.strictEqual(EM.doorSpan(v, 2.0, 0.5, 5, 3.5).size[1], 4);
+});
+
+test('стены не по сетке: двери на них нельзя, проверка предупреждает; привязка по умолчанию — углы', () => {
+  const m = EM.create({ name: 'O', image: 'a.png', imgW: 700, imgH: 700, ppg: 70 });
+  deq(EM.snapCorner(2.45, 3.02), P(2, 3));
+  EM.addWall(m, [P(1, 2.5), P(6, 2.5)]);
+  assert.strictEqual(EM.doorAt(m, 3.5, 2.5), null);
+  assert.strictEqual(EM.doorSpan(m, 3.5, 2.5, 5.5, 2.5), null);
+  assert.ok(EM.validate(m).some((v) => v.code === 'wallOffGrid'));
+  const a = EM.create({ name: 'A', image: 'a.png', imgW: 700, imgH: 700, ppg: 70 });
+  EM.addWall(a, [P(0.5, 2), P(6, 2)]);   // выровненная только частично: дверь на целой части
+  deq(EM.doorAt(a, 3.5, 2.05).position, P(3, 2));
+  assert.ok(EM.validate(a).some((v) => v.code === 'wallOffGrid'));
+});
