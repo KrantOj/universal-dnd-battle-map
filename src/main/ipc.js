@@ -34,7 +34,12 @@ function register() {
   h('app:showGm', () => windows.showGm());
 
   h('settings:get', () => settings.get());
-  h('settings:set', (e, p) => settings.set(p));
+  h('settings:set', (e, p) => {
+    const before = settings.get().lang;
+    const s = settings.set(p);
+    if (s.lang !== before) { require('./menu').build(); windows.applyLang(); }   // меню — сразу, окна — перезагрузкой
+    return s;
+  });
 
   h('campaigns:list', () => campaigns.list());
   h('campaigns:current', () => campaigns.current());

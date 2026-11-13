@@ -106,6 +106,17 @@
     body.textContent = '';
     var cfg = C();
 
+    // язык интерфейса (глобальная настройка приложения, не кампании)
+    var langRow = cfg.el('div', 'cfg-row');
+    langRow.appendChild(cfg.el('div', 'cfg-lbl', tr('settings.language')));
+    var langSel = cfg.el('select');
+    cfg.LANGS.forEach(function (l) { var o = cfg.el('option', null, l.name); o.value = l.code; langSel.appendChild(o); });
+    langSel.value = VTT.i18n.lang;
+    langSel.onchange = function () { cfg.setLanguage(langSel.value); };
+    langRow.appendChild(langSel);
+    body.appendChild(langRow);
+    body.appendChild(cfg.el('div', 'cfg-note', tr('settings.language.note')));
+
     // название
     var nameRow = cfg.el('div', 'cfg-row');
     nameRow.appendChild(cfg.el('div', 'cfg-lbl', tr('settings.campName')));

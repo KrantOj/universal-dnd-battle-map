@@ -59,3 +59,28 @@ test('dice: реальный rng — всегда в пределах', () => {
     assert.ok(v >= 1 && v <= 20, 'вне диапазона ' + v);
   }
 });
+
+test('dice: adv/dis и d/д работают на обоих языках независимо от интерфейса', () => {
+  for (const lang of ['ru', 'en']) {
+    const V = load(undefined, { lang });
+    assert.strictEqual(V.i18n.lang, lang);
+    assert.strictEqual(V.dice.roll('d20 adv', fixed([3, 18], 20)).total, 18, lang);
+    assert.strictEqual(V.dice.roll('d20 dis', fixed([3, 18], 20)).total, 3, lang);
+    assert.strictEqual(V.dice.roll('д20 преим', fixed([3, 18], 20)).total, 18, lang);
+    assert.strictEqual(V.dice.roll('1д20 помеха', fixed([3, 18], 20)).total, 3, lang);
+    assert.strictEqual(V.dice.roll('d20 Преимущество', fixed([4, 9], 20)).total, 9, lang);
+    assert.strictEqual(V.dice.roll('2д6+d4', fixed([2, 3, 1], 6)).total, 6, lang);
+  }
+});
+
+test('dice: сообщения об ошибках на языке интерфейса', () => {
+  const en = load(undefined, { lang: 'en' });
+  assert.throws(() => en.dice.roll(''), /Empty formula/);
+  assert.throws(() => en.dice.roll('9999d6'), /Dice per roll: from 1 to \d+/);
+  assert.throws(() => en.dice.roll('2d6 adv'), /adv\/dis works with a single d20/);
+  assert.throws(() => en.dice.roll('d1'), /Sides: from 2 to \d+/);
+  assert.throws(() => en.dice.roll('2d6++3'), /Could not parse the formula near/);
+  assert.throws(() => en.dice.roll('2d6kh3'), /Cannot keep\/drop 3 of 2/);
+  const ru = load(undefined, { lang: 'ru' });
+  assert.throws(() => ru.dice.roll(''), /Пустая формула/);
+});

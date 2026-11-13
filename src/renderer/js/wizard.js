@@ -16,6 +16,18 @@
 
   var STEPS = [
     {
+      title: tr('wizard.step.lang.title'),
+      render: function (b) {
+        b.appendChild(el('p', 'wz-lead', tr('wizard.step.lang.lead')));
+        var sel = el('select');
+        cfg.LANGS.forEach(function (l) { var o = el('option', null, l.name); o.value = l.code; sel.appendChild(o); });
+        sel.value = VTT.i18n.lang;
+        sel.onchange = function () { cfg.setLanguage(sel.value); };   // страница перезагрузится уже на новом языке
+        b.appendChild(sel);
+      },
+      skippable: false
+    },
+    {
       title: tr('wizard.step.name.title'),
       render: function (b) {
         b.appendChild(el('p', 'wz-lead', tr('wizard.step.name.lead')));
@@ -142,7 +154,7 @@
   }
 
   function next() {
-    if (step === 0 && !D.name.trim()) D.name = tr('wizard.defaultName');
+    if (step === 1 && !D.name.trim()) D.name = tr('wizard.defaultName');
     if (STEPS[step].last) { create(); return; }
     step++; render();
   }
@@ -157,7 +169,7 @@
     $('wzNext').onclick = next;
     $('wzSkip').onclick = function () { var s = STEPS[step]; if (s.reset) s.reset(); next(); };
     window.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' && e.target && e.target.tagName === 'INPUT' && e.target.type === 'text' && step === 0) { e.preventDefault(); next(); }
+      if (e.key === 'Enter' && e.target && e.target.tagName === 'INPUT' && e.target.type === 'text' && step === 1) { e.preventDefault(); next(); }
     });
     render();
   }

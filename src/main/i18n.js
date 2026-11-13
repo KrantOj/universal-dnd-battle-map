@@ -19,4 +19,4 @@ function t(key, params) {
   if (v === undefined) return key;
   return params ? v.replace(/\{(\w+)\}/g, (m, k) => (params[k] !== undefined && params[k] !== null ? String(params[k]) : m)) : v;
 }
-module.exports = { t };
+module.exports = { t, lang };

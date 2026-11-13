@@ -500,6 +500,12 @@
       if (ok) H().editor.forceClose();
     });
     H().editor.onRequest(handleRequest);
+    // смена языка: несохранённое уходит в черновик (предложат восстановить), страница перезагружается с новым <html lang>
+    H().editor.onLangChanged(async function () {
+      clearTimeout(draftTimer);
+      if (isDirty()) await writeDraft();
+      location.reload();
+    });
   }
 
   async function handleRequest(req) {

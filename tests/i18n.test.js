@@ -1,6 +1,7 @@
 'use strict';
 // Каждый ключ, который код/разметка запрашивает у i18n, есть в ru.json; в ru.json нет неиспользуемых ключей;
-// locales/ru.js синхронизирован с ru.json; plural-значения имеют 3 формы; подстановки {x} понятны.
+// locales/<lang>.js синхронизированы с json; наборы ключей ru и en совпадают, подстановки {x} в каждом ключе одинаковы;
+// plural-значения имеют столько форм, сколько нужно языку (ru — 3, en — 2).
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
@@ -10,6 +11,8 @@ const { load } = require('./helpers/load');
 const SRC = path.join(__dirname, '..', 'src');
 const LOC = path.join(SRC, 'renderer', 'locales');
 const ru = JSON.parse(fs.readFileSync(path.join(LOC, 'ru.json'), 'utf8'));
+const en = JSON.parse(fs.readFileSync(path.join(LOC, 'en.json'), 'utf8'));
+const DICTS = { ru, en };
 const have = new Set(Object.keys(ru));
 
 function walk(dir, out = []) {
@@ -50,7 +53,7 @@ test('в ru.json нет неиспользуемых ключей', () => {
   assert.deepStrictEqual(unused, []);
 });
 
-test('plural-ключи содержат 3 формы, у остальных нет «|»', () => {
+test('plural-ключи содержат нужное число форм (ru 3, en 2), у остальных нет «|»', () => {
   const pluralKeys = new Set();
   for (const f of files) {
     const re = /plural\([^,()]+(?:\([^)]*\))?,\s*'([^']+)'/g;
@@ -58,16 +61,45 @@ test('plural-ключи содержат 3 формы, у остальных н�
     let m;
     while ((m = re.exec(s))) pluralKeys.add(m[1]);
   }
-  for (const k of pluralKeys) assert.strictEqual(String(ru[k]).split('|').length, 3, k);
-  for (const [k, v] of Object.entries(ru)) if (!pluralKeys.has(k) && !v.startsWith('|')) assert.ok(!v.includes('|'), 'неожиданный | в ' + k);
+  const need = { ru: 3, en: 2 };
+  for (const [lang, d] of Object.entries(DICTS)) {
+    for (const k of pluralKeys) assert.strictEqual(String(d[k]).split('|').length, need[lang], lang + ': ' + k);
+    for (const [k, v] of Object.entries(d)) if (!pluralKeys.has(k) && !v.startsWith('|')) assert.ok(!v.includes('|'), 'неожиданный | в ' + lang + ': ' + k);
+  }
+  const VTT = load();
+  assert.strictEqual(VTT.i18n.formCount('ru'), 3);
+  assert.strictEqual(VTT.i18n.formCount('en'), 2);
 });
 
-test('locales/ru.js соответствует ru.json', () => {
-  const sandbox = { console };
-  sandbox.window = sandbox;
-  require('vm').createContext(sandbox);
-  require('vm').runInContext(fs.readFileSync(path.join(LOC, 'ru.js'), 'utf8'), sandbox);
-  assert.deepStrictEqual(JSON.parse(JSON.stringify(sandbox.VTT.locales.ru)), ru, 'запустите npm run build:locales');
+test('наборы ключей ru и en совпадают', () => {
+  const k = (d) => Object.keys(d).sort();
+  const onlyRu = k(ru).filter((x) => !(x in en)), onlyEn = k(en).filter((x) => !(x in ru));
+  assert.deepStrictEqual({ onlyRu, onlyEn }, { onlyRu: [], onlyEn: [] });
+});
+
+test('подстановки {x} в ru и en совпадают по каждому ключу; en не пустой и не копия ru', () => {
+  const ph = (v) => [...new Set(String(v).match(/\{\w+\}/g) || [])].sort().join(',');
+  const bad = [];
+  for (const k of Object.keys(ru)) {
+    if (ph(ru[k]) !== ph(en[k])) bad.push(`${k}: ${ph(ru[k])} vs ${ph(en[k])}`);
+    assert.ok(typeof en[k] === 'string' && en[k].trim() !== '', 'пустой перевод ' + k);
+  }
+  assert.deepStrictEqual(bad, []);
+  // «непереведённые» значения (en == ru) допустимы только для нейтральных строк
+  const same = Object.keys(ru).filter((k) => ru[k] === en[k] && /[А-Яа-я]/.test(ru[k]));
+  assert.deepStrictEqual(same, []);
+  const cyr = Object.keys(en).filter((k) => /[А-Яа-яЁё]/.test(en[k]));
+  assert.deepStrictEqual(cyr, [], 'кириллица в en.json');
+});
+
+test('locales/<lang>.js соответствует <lang>.json', () => {
+  for (const lang of Object.keys(DICTS)) {
+    const sandbox = { console };
+    sandbox.window = sandbox;
+    require('vm').createContext(sandbox);
+    require('vm').runInContext(fs.readFileSync(path.join(LOC, lang + '.js'), 'utf8'), sandbox);
+    assert.deepStrictEqual(JSON.parse(JSON.stringify(sandbox.VTT.locales[lang])), DICTS[lang], lang + ': запустите npm run build:locales');
+  }
 });
 
 test('VTT.i18n: подстановки, plural, фолбэк на ключ', () => {
@@ -85,4 +117,19 @@ test('ошибки dice.js локализованы через i18n', () => {
   const VTT = load();
   assert.throws(() => VTT.dice.roll(''), /Пустая формула/);
   assert.throws(() => VTT.dice.roll('9999d6'), /Кубиков за раз: от 1 до \d+/);
+});
+
+test('VTT.i18n (en): подстановки, plural в 2 формах, фолбэк на ключ', () => {
+  const VTT = load(undefined, { lang: 'en' });
+  const { t, plural } = VTT.i18n;
+  assert.strictEqual(VTT.i18n.lang, 'en');
+  assert.strictEqual(t('combat.toast.initRolled', { n: 3 }), 'Initiative rolled: 3');
+  assert.strictEqual(t('token.status.unconscious'), 'Unconscious');
+  assert.strictEqual(t('combat.toast.turn', {}), 'Turn: {name}');
+  assert.deepStrictEqual([0, 1, 2, 5, 11, 21].map((n) => plural(n, 'blog.entries')),
+    ['0 entries', '1 entry', '2 entries', '5 entries', '11 entries', '21 entries']);
+});
+
+test('неизвестный язык документа -> ru', () => {
+  assert.strictEqual(load(undefined, { lang: 'de' }).i18n.lang, 'ru');
 });

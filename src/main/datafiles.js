@@ -7,6 +7,7 @@
 //   editor-draft.json        — черновик редактора карт          (renderer/js/editor.js)
 //   kv.json                  — закрепления «Показа», незавершённый бой и пр. (main/kv.js)
 //   thumbs/<hash>.jpg        — кэш миниатюр «Показа»           (renderer/js/media.js); не экспортируется
+//   editor-stage/<имя>/<файл> — картинка новой карты до первого сохранения (renderer/js/editor.js); как кэш: не экспортируется
 // Временные *.tmp рядом с ними (атомарная запись) считаются своими.
 const fs = require('fs');
 const path = require('path');
@@ -16,6 +17,7 @@ const FILES = ['library.tokens.json', 'kv.json', 'editor-draft.json'];
 const DIRS = [
   { name: 'scenes', test: (n) => /[.]scene[.]json([.][^/]*[.]tmp)?$/.test(n), cache: false },
   { name: 'thumbs', test: (n) => /\.(jpe?g|tmp)$/i.test(n), cache: true },
+  { name: 'editor-stage', test: () => true, cache: true, deep: true },   // вложенная папка целиком принадлежит приложению
 ];
 const SUBFOLDER = 'Universal DnD Battle map';
 
@@ -26,12 +28,21 @@ const tmpOf = (n) => /\.tmp$/.test(n);
 function isOwnedRel(rel) {
   const p = norm(rel).split('/');
   if (p.length === 1) return FILES.some((f) => p[0] === f || (tmpOf(p[0]) && p[0].startsWith(f + '.')));
-  if (p.length === 2) { const d = DIRS.find((x) => x.name === p[0]); return !!(d && d.test(p[1])); }
-  return false;
+  const d = DIRS.find((x) => x.name === p[0]);
+  if (!d || p.some((x) => !x || x === '..')) return false;
+  if (p.length === 2) return d.test(p[1]);
+  return !!d.deep;
 }
-const isCacheRel = (rel) => norm(rel).startsWith('thumbs/');
+const isCacheRel = (rel) => { const d = DIRS.find((x) => x.name === norm(rel).split('/')[0]); return !!(d && d.cache); };
 
 function readdir(dir) { try { return fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return []; } }
+
+function walkDir(abs, rel, d, add) {
+  for (const f of readdir(abs)) {
+    if (f.isFile() && d.test(f.name)) add(path.join(abs, f.name), rel + '/' + f.name);
+    else if (f.isDirectory() && d.deep) walkDir(path.join(abs, f.name), rel + '/' + f.name, d, add);
+  }
+}
 
 /** Файлы приложения в папке: [{abs, rel, size}]. opts.cache=false — без кэша (thumbs). */
 function ownedFiles(dir, opts) {
@@ -43,7 +54,7 @@ function ownedFiles(dir, opts) {
     else if (e.isDirectory()) {
       const d = DIRS.find((x) => x.name === e.name);
       if (!d || (d.cache && !withCache)) continue;
-      for (const f of readdir(path.join(dir, e.name))) if (f.isFile() && d.test(f.name)) add(path.join(dir, e.name, f.name), e.name + '/' + f.name);
+      walkDir(path.join(dir, e.name), e.name, d, add);
     }
   }
   return out;
@@ -54,7 +65,7 @@ function foreignEntries(dir) {
   const out = [];
   for (const e of readdir(dir)) {
     const d = e.isDirectory() && DIRS.find((x) => x.name === e.name);
-    if (d) { if (readdir(path.join(dir, e.name)).some((f) => !(f.isFile() && d.test(f.name)))) out.push(e.name + '/'); }
+    if (d) { if (!d.deep && readdir(path.join(dir, e.name)).some((f) => !(f.isFile() && d.test(f.name)))) out.push(e.name + '/'); }
     else if (!(e.isFile() && isOwnedRel(e.name))) out.push(e.isDirectory() ? e.name + '/' : e.name);
   }
   return out;
@@ -70,12 +81,17 @@ function inspect(dir) {
 }
 
 function rmdirIfEmpty(d) { try { if (!fs.readdirSync(d).length) { fs.rmdirSync(d); return true; } } catch (_) {} return false; }
+/** Убирает пустые подпапки внутри «глубокой» папки приложения, затем её саму, если опустела. */
+function pruneEmpty(d, deep) {
+  if (deep) for (const e of readdir(d)) if (e.isDirectory()) pruneEmpty(path.join(d, e.name), true);
+  return rmdirIfEmpty(d);
+}
 
 /** Удаляет ТОЛЬКО файлы приложения, затем пустые scenes/, thumbs/ и (если остался пустым) саму папку. -> {removed, folderRemoved} */
 function removeOwned(dir) {
   let removed = 0;
   for (const f of ownedFiles(dir)) { try { fs.unlinkSync(f.abs); removed++; } catch (_) {} }
-  for (const d of DIRS) rmdirIfEmpty(path.join(dir, d.name));
+  for (const d of DIRS) pruneEmpty(path.join(dir, d.name), d.deep);
   return { removed, folderRemoved: rmdirIfEmpty(dir) };
 }
 
@@ -115,7 +131,7 @@ function moveOwned(from, to, opts) {
     throw e;
   }
   for (const x of plan) { try { fs.unlinkSync(x.f.abs); } catch (_) {} }
-  for (const d of DIRS) rmdirIfEmpty(path.join(a, d.name));
+  for (const d of DIRS) pruneEmpty(path.join(a, d.name), d.deep);
   rmdirIfEmpty(a);
   return { moved: plan.length, skipped };
 }

@@ -142,5 +142,16 @@
     return { el: row, input: cb };
   }
 
-  VTT.cfg = { el: el, choose3: choose3, folderRow: folderRow, guardDataDir: guardDataDir, mediaEditor: mediaEditor, checkRow: checkRow };
+  // языки интерфейса: названия — на самом языке, не переводятся
+  var LANGS = [{ code: 'ru', name: 'Русский' }, { code: 'en', name: 'English' }];
+
+  // смена языка интерфейса (глобальная настройка): сначала сброс сцены на диск, затем главный процесс сохраняет язык,
+  // пересобирает меню и перезагружает окна (GM, редактор, игроков)
+  async function setLanguage(code) {
+    if (code === VTT.i18n.lang) return;
+    try { if (VTT.gm && VTT.gm.flush) await VTT.gm.flush(); } catch (e) { console.warn('flush', e); }
+    await window.host.settings.set({ lang: code });
+  }
+
+  VTT.cfg = { LANGS: LANGS, setLanguage: setLanguage, el: el, choose3: choose3, folderRow: folderRow, guardDataDir: guardDataDir, mediaEditor: mediaEditor, checkRow: checkRow };
 })();

@@ -5,9 +5,11 @@
  *
  * Подстановки:   t('gm.toast.created', { name: 'Орк' })   — значение «Создан «{name}»»; неизвестный {x} остаётся как есть.
  * Множественное: plural(n, key[, params]) — значение хранит формы через «|»: «{n} запись|{n} записи|{n} записей»
- *                (для русского: 1 / 2–4 / 5+; для остальных языков — 2 формы: 1 / прочее). {n} подставляется само.
+ *                формы выбираются по языку: ru — 3 (1 / 2–4 / 5+), en — 2 (one|other); {n} подставляется само.
  * DOM:           apply(root) — data-i18n (textContent), data-i18n-html (innerHTML, только доверенный словарь),
  *                data-i18n-title, data-i18n-placeholder, data-i18n-aria (aria-label).
+ * Язык берётся из <html lang>, который главный процесс подставляет по настройке settings.lang (см. main/protocol.js);
+ * при смене языка окна перезагружаются. Доступные словари: locales/ru.js, locales/en.js.
  * Нет ключа в текущем языке -> берётся ru, иначе возвращается сам ключ (и один раз пишется предупреждение).
  * Синтаксис ввода (напр. «д», «преим», «помеха» в формулах кубиков) — не UI, в словарь не выносится.
  */
@@ -42,6 +44,9 @@
     var v = raw(key);
     return v === null ? key : fill(v, params);
   }
+  // число форм множественного числа по языку (тест сверяет с количеством «|» в словаре)
+  var FORMS = { ru: 3, en: 2 };
+  function formCount(l) { return FORMS[l] || 2; }
   function formIndex(n) {
     n = Math.abs(n);
     if (lang === 'ru') {
@@ -70,5 +75,5 @@
     each('[data-i18n-aria]', function (e) { e.setAttribute('aria-label', t(e.getAttribute('data-i18n-aria'))); });
   }
 
-  VTT.i18n = { t: t, plural: plural, apply: apply, lang: lang };
+  VTT.i18n = { t: t, plural: plural, apply: apply, lang: lang, formCount: formCount };
 })();

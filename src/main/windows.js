@@ -145,6 +145,18 @@ function openInGm(rel) {
   gmWindow.webContents.send('editor:openMap', String(rel));
 }
 
+/** Язык сменился: заголовки окон и перезагрузка страниц (HTML получает новый <html lang>). Мастер уже сбросил состояние на диск. */
+function applyLang() {
+  if (isEditorOpen()) { editorWindow.setTitle(t('editor.title')); editorWindow.webContents.send('app:langChanged'); }   // редактор сам допишет черновик и перезагрузится
+  if (isPlayerOpen()) {
+    playerWindow.setTitle(t('player.title'));
+    const reloadPlayer = () => { if (isPlayerOpen()) playerWindow.webContents.reload(); };
+    if (gmWindow && !gmWindow.isDestroyed()) gmWindow.webContents.once('did-finish-load', () => setTimeout(reloadPlayer, 300));
+    else reloadPlayer();
+  }
+  if (gmWindow && !gmWindow.isDestroyed()) gmWindow.webContents.reload();
+}
+
 function showWizard() { return load(gmWindow, 'wizard.html'); }
 function showGm() { return load(gmWindow, 'gm.html'); }
 function getGmWindow() { return gmWindow; }
@@ -232,6 +244,6 @@ function broadcast(channel, ...args) {
 }
 
 module.exports = {
-  createGmWindow, getGmWindow, openEditor, getEditorWindow, isEditorOpen, takeEditorRequest, setEditorDirty, forceCloseEditor, openInGm, getPlayerWindow, showWizard, showGm,
+  createGmWindow, getGmWindow, openEditor, getEditorWindow, isEditorOpen, takeEditorRequest, setEditorDirty, forceCloseEditor, openInGm, getPlayerWindow, showWizard, showGm, applyLang,
   openPlayer, closePlayer, isPlayerOpen, togglePlayerFullscreen, watchDisplays, relay, broadcast, emitPlayerState,
 };
