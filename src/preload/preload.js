@@ -98,6 +98,7 @@ contextBridge.exposeInMainWorld('host', {
     onOpenMap: (cb) => sub('editor:openMap', cb),
     setDirty: (v) => { try { ipcRenderer.send('editor:dirty', !!v); } catch (_) { /* ignore */ } },
     onConfirmClose: (cb) => sub('editor:confirmClose', cb),
+    onLangChanged: (cb) => sub('app:langChanged', cb),
     forceClose: () => inv('editor:forceClose'),
   },
   sync: {

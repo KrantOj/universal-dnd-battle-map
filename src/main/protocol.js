@@ -1,5 +1,6 @@
 'use strict';
 const { protocol, net } = require('electron');
+const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 const pu = require('./pathutil');
@@ -33,10 +34,20 @@ function resolveUserfile(urlStr) {
   } catch (_) { return null; }
 }
 
+/** HTML отдаём с <html lang> по настройке языка — i18n.js в окне берёт язык оттуда синхронно. */
+function htmlResponse(full) {
+  try {
+    const lang = require('./i18n').lang();
+    const body = fs.readFileSync(full, 'utf8').replace(/<html lang="[a-z-]*"/i, `<html lang="${lang}"`);
+    return new Response(body, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
+  } catch (_) { return new Response('Not found', { status: 404 }); }
+}
+
 function registerHandlers() {
   protocol.handle('app', (request) => {
     const full = resolveAppPath(request.url);
     if (!full) return new Response('Forbidden', { status: 403 });
+    if (/\.html$/i.test(full)) return htmlResponse(full);
     return net.fetch(pathToFileURL(full).toString()).catch(() => new Response('Not found', { status: 404 }));
   });
   protocol.handle('userfile', async (request) => {

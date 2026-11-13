@@ -29,8 +29,8 @@
     var s = String(expr == null ? '' : expr).toLowerCase().replace(/ё/g, 'е');
     s = s.replace(/[−–—]/g, '-').replace(/д/g, 'd').replace(/к/g, 'k');
     var mode = null;
-    s = s.replace(/\s*(adv|преим\w*)\s*$/, function () { mode = 'kh'; return ''; })
-         .replace(/\s*(dis|помех\w*)\s*$/, function () { mode = 'kl'; return ''; });
+    s = s.replace(/\s*(adv|преим[а-я]*\.?)\s*$/, function () { mode = 'kh'; return ''; })
+         .replace(/\s*(dis|помех[а-я]*)\s*$/, function () { mode = 'kl'; return ''; });
     s = s.replace(/\s+/g, '');
     return { s: s, adv: mode };
   }

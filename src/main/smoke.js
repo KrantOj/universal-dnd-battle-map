@@ -20,6 +20,10 @@ function early() {
   tmp = path.join(os.tmpdir(), `udbm-smoke-${Date.now()}`);
   fs.mkdirSync(path.join(tmp, 'shots'), { recursive: true });
   app.setPath('userData', path.join(tmp, 'userData'));
+  // язык smoke фиксируем (иначе зависит от локали ОС): ru, если не задан --smoke-lang=en
+  const lg = argv.find((a) => a.indexOf('--smoke-lang=') === 0);
+  fs.mkdirSync(path.join(tmp, 'userData'), { recursive: true });
+  fs.writeFileSync(path.join(tmp, 'userData', 'settings.json'), JSON.stringify({ lang: lg ? lg.slice('--smoke-lang='.length) : 'ru' }));
   console.log('SMOKE_DIR=' + tmp);
 }
 
@@ -34,7 +38,7 @@ async function run(windows, campaigns) {
     console.log('SMOKE_RESULT ' + (code === 0 ? 'OK' : 'FAIL') + ' errors=' + (report.errors.length + report.consoleErrors.length));
     app.exit(code);
   };
-  const watchdog = setTimeout(() => { report.errors.push('watchdog timeout'); finish(1); }, 90000);
+  const watchdog = setTimeout(() => { report.errors.push('watchdog timeout'); finish(1); }, only === 'lang' ? 150000 : 90000);
 
   app.on('web-contents-created', (_e, wc) => {
     wc.on('console-message', (...a) => {
@@ -88,7 +92,7 @@ async function run(windows, campaigns) {
         await waitFor("!!document.getElementById('wzNext')");
         const t = await ex("document.getElementById('wzTitle').textContent");
         if (!t) throw new Error('wizard title empty');
-        for (let i = 0; i < 7; i++) { await ex("document.getElementById('wzNext').click()"); await sleep(250); }
+        for (let i = 0; i < 8; i++) { await ex("document.getElementById('wzNext').click()"); await sleep(250); }
         const nextTxt = await ex("document.getElementById('wzNext').textContent");
         if (nextTxt !== i18n.t('wizard.btn.create')) throw new Error('did not reach last wizard step: ' + nextTxt);
       });
@@ -112,6 +116,12 @@ async function run(windows, campaigns) {
     if (only === 'music') {
       await step('init', async () => { await waitFor("!!(window.VTT && VTT.gm && VTT.music && document.querySelectorAll('#mapList button').length)", 15000); });
       await require('./smoke-music')({ windows, campaigns, tmp, ex, waitFor, step, sleep });
+      clearTimeout(watchdog);
+      return finish(report.errors.length || report.consoleErrors.length ? 1 : 0);
+    }
+
+    if (only === 'lang') {
+      await require('./smoke-lang')({ windows, campaigns, tmp, ex, waitFor, step, sleep, report });
       clearTimeout(watchdog);
       return finish(report.errors.length || report.consoleErrors.length ? 1 : 0);
     }
