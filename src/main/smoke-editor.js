@@ -77,16 +77,19 @@ module.exports = async function editorSmoke(k) {
   await step('editor-save', async () => {
     await exe("document.getElementById('edSave').click()");
     await sleep(500);
-    // диалоги по очереди: «Рамка карты» — без рамки (иначе image_grid сдвигается); замечания (если есть) — сохранить всё равно
+    // диалоги по очереди: замечания (если есть) — сохранить всё равно; «Рамка карты» — добавить рамку
     for (let i = 0; i < 3; i++) {
-      await exe("(function(){var b=document.querySelector('.vtt-ui-backdrop');if(!b)return;var fr=/рамк|frame/i.test(b.textContent);var x=b.querySelector(fr?'.vtt-ui-btn-cancel':'.vtt-ui-btn-ok');if(x)x.click();})()");
+      await exe("(function(){var o=document.querySelector('.vtt-ui-backdrop .vtt-ui-btn-ok');if(o)o.click();})()");
       await sleep(500);
     }
     await waitEd('!VTT.editor._state.isNew', 8000);
     must(fs.existsSync(jsonPath), 'map.json не записан: ' + jsonPath);
     const m = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
     must(m.format === 'vestfalia-battlemap/1', 'format');
-    must(JSON.stringify(m.image_grid) === JSON.stringify({ x: 49, y: 140, width: 1218, height: 1144 }), 'image_grid ' + JSON.stringify(m.image_grid));
+    must(m.editor_frame && m.editor_frame.base, 'нет editor_frame: ' + JSON.stringify(m.editor_frame));
+    must(m.image_grid.x === 49 + m.editor_frame.l && m.image_grid.y === 140 + m.editor_frame.t, 'image_grid со сдвигом на рамку ' + JSON.stringify(m.image_grid));
+    must(fs.existsSync(path.join(mapsDir, name, m.editor_frame.base)), 'исходная картинка (base) не сохранена');
+    fs.copyFileSync(path.join(mapsDir, name, m.image), path.join(tmp, 'frame-1.png'));
     must(m.resolution.map_size.x === 16 && m.resolution.map_size.y === 12, 'map_size');
     must(m.line_of_sight.length === 2, 'стена должна быть разрезана дверью: ' + JSON.stringify(m.line_of_sight));
     must(m.portals.length === 1 && m.portals[0].dir === 'v' && m.portals[0].position.x === 8 && m.portals[0].position.y === 5, 'portals ' + JSON.stringify(m.portals));
@@ -94,6 +97,24 @@ module.exports = async function editorSmoke(k) {
     must(m.layers.elevation_ft[2][10] === 20, 'высота в слоях');
     must(fs.existsSync(path.join(mapsDir, name, m.image)), 'картинка не скопирована в папку карты');
     must(!fs.existsSync(path.join(require('./campaigns').current().folders.data, 'editor-draft.json')), 'черновик не удалён после сохранения');
+  }, 900);
+
+  await step('editor-resave-legend', async () => {
+    const before = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    const size1 = fs.statSync(path.join(mapsDir, name, before.image)).size;
+    await exe("VTT.editor._api.setTool('terrain'); VTT.editor._state.kind='difficult'; VTT.editor._state.shape='brush'; VTT.editor._state.size=1;");
+    await click(1.5, 1.5);
+    await exe("document.getElementById('edSave').click()");
+    for (let i = 0; i < 3; i++) {
+      await exe("(function(){var o=document.querySelector('.vtt-ui-backdrop .vtt-ui-btn-ok');if(o)o.click();})()");
+      await sleep(500);
+    }
+    await sleep(800);
+    const after = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    must(JSON.stringify(after.image_grid) === JSON.stringify(before.image_grid), 'image_grid сместился при пересохранении: ' + JSON.stringify(after.image_grid));
+    fs.copyFileSync(path.join(mapsDir, name, after.image), path.join(tmp, 'frame-2.png'));
+    must(fs.statSync(path.join(mapsDir, name, after.image)).size !== size1, 'картинка не пересобрана (легенда не обновилась)');
+    await exe("VTT.editor._api.setTool('select')");
   }, 900);
 
   await step('editor-battle-check', async () => {

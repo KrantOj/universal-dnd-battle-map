@@ -217,42 +217,128 @@
     if (!list.length) { toast(tr('editor.val.ok')); return; }
     await VTT.ui.alert({ title: tr('editor.val.title'), text: lines(list) });
   }
-  /** Рамка вокруг картинки новой карты: заголовок, буквы столбцов, цифры строк, легенда (масштаб). Сетка сдвигается вместе с картинкой. */
-  async function addFrame() {
-    var m = E.model, bin = await H().fs.readBinary(E.imgRoot, E.imgRel);
+  // ------------------------------------------------------------------ рамка: подписи, легенда
+  // Вид — как у карт скилла battle-map (render_map.py); всё считается в долях клетки u = ppg.
+  // Исходная картинка без рамки лежит рядом (editor_frame.base в map.json), поэтому при каждом сохранении рамка и легенда рисуются заново.
+  var SERIF = 'Georgia, "Times New Roman", serif';
+  function legendRows(mc, m, u, maxW) {
+    var items = [], elev = [];
+    function textW(s, bold) { mc.font = (bold ? 'bold ' : '') + (0.3 * u) + 'px ' + SERIF; return mc.measureText(s).width; }
+    function add(list, label, icon, iconW, bold) { list.push({ label: label, icon: icon, w: iconW + textW(label, bold), iconW: iconW, bold: bold }); }
+    add(items, tr('editor.frame.scale', { feet: m.feet }), function (c, x, y) {
+      c.strokeStyle = '#d8c9a8'; c.lineWidth = 0.05 * u; c.beginPath();
+      c.moveTo(x, y); c.lineTo(x + u, y); c.moveTo(x, y - 0.12 * u); c.lineTo(x, y + 0.12 * u); c.moveTo(x + u, y - 0.12 * u); c.lineTo(x + u, y + 0.12 * u); c.stroke();
+    }, 1.2 * u);
+    var seen = {}, anyDoor = m.doors && m.doors.length, ex = {};
+    for (var y = 0; y < m.rows; y++) for (var x = 0; x < m.cols; x++) {
+      var k = M().kindOf(m, x, y); if (k !== 'normal') seen[k] = 1;
+      var e = m.layers.elevation_ft[y][x]; if (e) ex[e] = 1;
+    }
+    var VW = VTT.editorView;
+    ['difficult', 'water', 'hole', 'obstacle', 'impassable'].forEach(function (k) {
+      if (!seen[k]) return;
+      add(items, tr('editor.kind.' + k), function (c, x, y) {
+        var s = 0.4 * u; c.save();
+        if (k === 'difficult') {
+          c.globalAlpha = 0.2; c.fillStyle = '#f2b233'; c.fillRect(x, y - s / 2, s, s); c.globalAlpha = 1;
+          c.strokeStyle = '#f2b233'; c.lineWidth = 0.04 * u; c.setLineDash([0.1 * u, 0.05 * u]); c.strokeRect(x, y - s / 2, s, s); c.setLineDash([]);
+          c.fillStyle = '#f2b233'; c.beginPath(); var dx = x + 0.3 * u, dy = y - 0.1 * u, r = 0.07 * u;
+          c.moveTo(dx, dy - r); c.lineTo(dx + r, dy); c.lineTo(dx, dy + r); c.lineTo(dx - r, dy); c.fill();
+        } else {
+          c.globalAlpha = Math.min(1, (VW.KIND_ALPHA[k] || 0.5) + 0.4); c.fillStyle = VW.KIND_COLOR[k]; c.fillRect(x, y - s / 2, s, s); c.globalAlpha = 1;
+          c.strokeStyle = k === 'hole' ? '#666' : '#d8c9a8'; c.lineWidth = 0.03 * u; c.strokeRect(x, y - s / 2, s, s);
+        }
+        c.restore();
+      }, 0.55 * u);
+    });
+    if (anyDoor) add(items, tr('editor.frame.door'), function (c, x, y) {
+      c.lineCap = 'butt'; c.strokeStyle = '#2a1808'; c.lineWidth = 0.2 * u; c.beginPath(); c.moveTo(x, y); c.lineTo(x + 0.4 * u, y); c.stroke();
+      c.strokeStyle = '#a07040'; c.lineWidth = 0.12 * u; c.beginPath(); c.moveTo(x, y); c.lineTo(x + 0.4 * u, y); c.stroke();
+    }, 0.55 * u);
+    var vals = Object.keys(ex).map(Number).sort(function (a, b) { return b - a; });
+    if (vals.length) {
+      add(elev, tr('editor.frame.elev'), null, 0, true);
+      vals.forEach(function (v) {
+        var s = (v > 0 ? '+' : '−') + tr('editor.frame.ft', { v: Math.abs(v) });
+        add(elev, s, function (c, x, y) {
+          c.lineCap = 'butt'; c.strokeStyle = 'rgba(0,0,0,.7)'; c.lineWidth = 0.17 * u; c.beginPath(); c.moveTo(x, y); c.lineTo(x + 0.7 * u, y); c.stroke();
+          c.strokeStyle = VW.elevColor(v, 1); c.lineWidth = 0.075 * u; c.setLineDash([0.35 * u, 0.12 * u]); c.beginPath(); c.moveTo(x, y); c.lineTo(x + 0.7 * u, y); c.stroke(); c.setLineDash([]);
+        }, 0.85 * u);
+      });
+    }
+    var rows = [];
+    [items, elev].forEach(function (list) {
+      var row = [], x = 0;
+      list.forEach(function (it) {
+        if (row.length && x + it.w > maxW) { rows.push(row); row = []; x = 0; }
+        row.push(it); x += it.w + 0.5 * u;
+      });
+      if (row.length) rows.push(row);
+    });
+    return rows;
+  }
+  /** Нарисовать картинку с рамкой вокруг исходной (bin). baseOff — смещение сетки внутри исходной картинки. */
+  async function renderFrame(bin, m, baseOffX, baseOffY) {
     var src = await createImageBitmap(new Blob([bin]));
-    var ppg = m.ppg, fs = Math.max(12, Math.min(30, Math.round(ppg * 0.3)));
-    var padL = Math.round(fs * 2.6), padT = Math.round(fs * 3.4), padR = Math.round(fs * 0.8), padB = Math.round(fs * 3.4);
-    var W = m.imgW + padL + padR, Hh = m.imgH + padT + padB;
+    var u = m.ppg, padL = Math.round(0.7 * u), padR = padL, padT = Math.round(2.0 * u);
+    var W = src.width + padL + padR, mc = document.createElement('canvas').getContext('2d');
+    var rows = legendRows(mc, m, u, src.width);
+    var padB = Math.round((0.85 + 0.75 * rows.length) * u), Hh = src.height + padT + padB;
     var cv = document.createElement('canvas'); cv.width = W; cv.height = Hh;
     var c = cv.getContext('2d');
-    c.fillStyle = '#efe6d2'; c.fillRect(0, 0, W, Hh);
+    c.fillStyle = '#1b1714'; c.fillRect(0, 0, W, Hh);
     c.drawImage(src, padL, padT);
-    var gx = padL + m.offX, gy = padT + m.offY, ink = '#3a2f22';
-    c.fillStyle = ink; c.textBaseline = 'middle';
-    c.font = 'bold ' + Math.round(fs * 1.2) + 'px system-ui, sans-serif'; c.textAlign = 'left';
-    c.fillText(m.title || '', padL, fs * 1.1);
-    c.font = fs + 'px system-ui, sans-serif'; c.textAlign = 'center';
-    for (var x = 0; x < m.cols; x++) c.fillText(VTT.geometry.cellName(x, 0).replace(/\d+$/, ''), gx + (x + 0.5) * ppg, padT - fs * 0.8);
-    c.textAlign = 'right';
-    for (var y = 0; y < m.rows; y++) c.fillText(String(y + 1), padL - fs * 0.5, gy + (y + 0.5) * ppg);
-    // легенда
-    var ly = padT + m.imgH + padB / 2, sw = Math.round(fs * 1.3);
-    c.textAlign = 'left'; c.font = 'bold ' + fs + 'px system-ui, sans-serif';
-    c.fillText(tr('editor.frame.legend') + ':', padL, ly);
-    var lx = padL + c.measureText(tr('editor.frame.legend') + ':').width + fs;
-    c.strokeStyle = ink; c.lineWidth = 2; c.strokeRect(lx, ly - sw / 2, sw, sw);
-    c.font = fs + 'px system-ui, sans-serif';
-    c.fillText(tr('editor.frame.scale', { feet: m.feet }), lx + sw + fs * 0.6, ly);
+    var gx = padL + baseOffX, gy = padT + baseOffY;
+    c.textBaseline = 'middle';
+    c.fillStyle = '#f3e6c4'; c.textAlign = 'left'; c.font = 'bold ' + (0.62 * u) + 'px ' + SERIF;
+    c.fillText(m.title || '', padL, 0.75 * u);
+    c.fillStyle = '#d8c9a8'; c.textAlign = 'center'; c.font = (0.34 * u) + 'px ' + SERIF;
+    for (var x = 0; x < m.cols; x++) c.fillText(VTT.geometry.cellName(x, 0).replace(/\d+$/, ''), gx + (x + 0.5) * u, padT - 0.35 * u);
+    for (var y = 0; y < m.rows; y++) {
+      c.fillText(String(y + 1), padL - 0.35 * u, gy + (y + 0.5) * u);
+      c.fillText(String(y + 1), padL + src.width + 0.35 * u, gy + (y + 0.5) * u);
+    }
+    c.textAlign = 'left';
+    rows.forEach(function (row, i) {
+      var lx = padL, ly = padT + src.height + 0.85 * u + i * 0.75 * u;
+      row.forEach(function (it) {
+        if (it.icon) it.icon(c, lx, ly);
+        c.fillStyle = '#d8c9a8'; c.font = (it.bold ? 'bold ' : '') + (0.3 * u) + 'px ' + SERIF;
+        c.fillText(it.label, lx + it.iconW, ly);
+        lx += it.w + 0.5 * u;
+      });
+    });
     var blob = await new Promise(function (res) { cv.toBlob(res, 'image/png'); });
     if (!blob) throw new Error('canvas');
-    var rel = dirOf(E.imgRel) + '/' + fileOf(E.imgRel).replace(/\.[^.]+$/, '') + '.png';
-    await H().fs.writeBinary(E.imgRoot, rel, await blob.arrayBuffer());
-    if (rel !== E.imgRel) await H().fs.remove(E.imgRoot, E.imgRel).catch(function () {});
-    E.imgRel = rel; m.image = fileOf(rel); m.imgW = W; m.imgH = Hh; m.offX += padL; m.offY += padT;
-    E.img = await VTT.store._loadImage(H().fs.url(E.imgRoot, rel));
+    return { blob: blob, l: padL, t: padT, r: padR, b: padB, W: W, H: Hh };
+  }
+  /** Первое сохранение (first: исходник кладётся рядом как *.base.*) или повторное сохранение карты с рамкой: пересобрать картинку. */
+  async function applyFrame(first) {
+    var m = E.model, dir = dirOf(E.entryRel), fr = m.extra.editor_frame, baseRel, bin, baseOffX, baseOffY, stem, ext;
+    if (first) {
+      var fname = fileOf(E.imgRel); ext = (fname.match(/\.[^.]+$/) || ['.png'])[0]; stem = fname.replace(/\.[^.]+$/, '');
+      bin = await H().fs.readBinary(E.imgRoot, E.imgRel);
+      baseOffX = m.offX; baseOffY = m.offY;
+      baseRel = dir + '/' + stem + '.base' + ext;
+      await H().fs.writeBinary('maps', baseRel, bin);
+    } else {
+      baseRel = dir + '/' + fr.base;
+      bin = await H().fs.readBinary('maps', baseRel);
+      baseOffX = m.offX - fr.l; baseOffY = m.offY - fr.t;
+      stem = fileOf(E.imgRel).replace(/\.[^.]+$/, '');
+    }
+    var r = await renderFrame(bin, m, baseOffX, baseOffY);
+    var rel = dir + '/' + stem + '.png';
+    await H().fs.writeBinary('maps', rel, await r.blob.arrayBuffer());
+    if (first) await H().fs.remove(E.imgRoot, STAGE).catch(function () {});
+    E.imgRoot = 'maps'; E.imgRel = rel;
+    m.image = fileOf(rel); m.imgW = r.W; m.imgH = r.H; m.offX = baseOffX + r.l; m.offY = baseOffY + r.t;
+    m.extra.editor_frame = { base: fileOf(baseRel), l: r.l, t: r.t, r: r.r, b: r.b };
+    await new Promise(function (res) {
+      var im = new Image(); im.onload = function () { E.img = im; res(); }; im.onerror = res; im.src = URL.createObjectURL(r.blob);
+    });
     E.hist.reset(M().snapshot(m));
-    syncPanel(); requestDraw();
+    requestDraw();
   }
   async function save() {
     var m = E.model;
@@ -265,13 +351,15 @@
       if (!ok) return false;
     }
     try {
-      if (E.imgRoot !== 'maps' && await VTT.ui.confirm({ title: tr('editor.frame.title'), text: tr('editor.frame.text'), ok: tr('editor.frame.ok'), cancel: tr('editor.frame.no') })) await addFrame();
-      if (E.imgRoot !== 'maps') {      // первое сохранение новой карты: перенести картинку из временной папки в maps/<имя>/
-        var dir = dirOf(E.entryRel), fname = fileOf(E.imgRel);
-        await H().fs.writeBinary('maps', dir + '/' + fname, await H().fs.readBinary(E.imgRoot, E.imgRel));
-        await H().fs.remove(E.imgRoot, STAGE).catch(function () {});
-        E.imgRoot = 'maps'; E.imgRel = dir + '/' + fname;
-      }
+      if (E.imgRoot !== 'maps') {      // первое сохранение новой карты: рамка (по желанию) и перенос картинки из временной папки в maps/<имя>/
+        if (await VTT.ui.confirm({ title: tr('editor.frame.title'), text: tr('editor.frame.text'), ok: tr('editor.frame.ok'), cancel: tr('editor.frame.no') })) await applyFrame(true);
+        else {
+          var dir = dirOf(E.entryRel), fname = fileOf(E.imgRel);
+          await H().fs.writeBinary('maps', dir + '/' + fname, await H().fs.readBinary(E.imgRoot, E.imgRel));
+          await H().fs.remove(E.imgRoot, STAGE).catch(function () {});
+          E.imgRoot = 'maps'; E.imgRel = dir + '/' + fname;
+        }
+      } else if (m.extra && m.extra.editor_frame) await applyFrame(false);
       await H().fs.writeText('maps', E.entryRel, JSON.stringify(M().toMeta(m), null, 2) + '\n');
     } catch (e) { VTT.ui.alert({ title: tr('common.attention'), text: tr('common.saveFailed', { msg: errText(e) }) }); return false; }
     m.origGrid = { width: m.imgW, height: m.imgH };
