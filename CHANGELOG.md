@@ -8,11 +8,13 @@ Section format: `## [X.Y.Z] - date`. `npm run release` uses the section of the c
 **RU**
 - Рамка карты из картинки в редакторе теперь в том же тёмном стиле, что у карт скилла battle-map: заголовок, буквы столбцов и цифры строк с двух сторон, легенда.
 - Легенда собирается из содержимого карты: масштаб, труднопроходимая местность, вода, ямы, препятствия, непроходимые клетки, двери и перепады высот (каждая высота своим цветом). Длинная легенда переносится на новую строку.
+- Исправлено: на картах из картинки не отображались вода, труднопроходимая местность, ямы, препятствия и высоты. Теперь в бою (у мастера и игроков) они рисуются приложением по слоям карты: цветная заливка, «◆◆» у труднопроходимых клеток, цветной пунктир по границам высот.
 - Легенда и рамка обновляются при каждом сохранении карты: исходная картинка без рамки хранится рядом (`<имя>.base.png`). Карты, сохранённые в 1.0.1 с рамкой, не обновляются — их нужно создать заново.
 
 **EN**
 - The frame added to maps made from an image in the editor now uses the same dark style as battle-map skill maps: title, column letters and row numbers on both sides, legend.
 - The legend is built from the map contents: scale, difficult terrain, water, pits, obstacles, impassable cells, doors and height differences (each height in its own colour). A long legend wraps onto a new line.
+- Fixed: water, difficult terrain, pits, obstacles and heights were not shown on maps made from an image. They are now drawn by the app from the map layers in battle (GM and players): coloured fill, "◆◆" on difficult cells, coloured dashed outlines along height borders.
 - The frame and legend are redrawn on every save: the original image without a frame is kept next to the map (`<name>.base.png`). Maps saved with a frame in 1.0.1 are not updated — recreate them.
 
 ## [1.0.1] - 2026-11-14

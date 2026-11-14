@@ -130,6 +130,11 @@ module.exports = async function editorSmoke(k) {
     must(r.acrossOk === false, 'путь через стену/закрытую дверь должен быть закрыт: ' + JSON.stringify(r));
     must(r.viaDoorOk === true && r.viaDoorFeet === 10, 'через открытую дверь должно быть 10 фт: ' + JSON.stringify(r));
     must(r.water === 'water' && r.mult === 2 && r.elev === 20, 'вода/высота в бою: ' + JSON.stringify(r));
+    // местность карты из редактора рисуется приложением (в картинке её нет): флаг в map.json и кэш-канвас с непустыми пикселями
+    await sleep(600);
+    const ov = await ex(`(function(){var m=VTT.gm._state.map;var cv=m._ovl&&m._ovl.cv;if(!cv)return {flag:!!m.meta.editor_overlay,cv:false};
+      var d=cv.getContext('2d').getImageData(0,0,cv.width,cv.height).data,n=0;for(var i=3;i<d.length;i+=4)if(d[i])n++;return {flag:true,cv:true,n:n};})()`);
+    must(ov.flag && ov.cv && ov.n > 1000, 'местность не отрисована в бою: ' + JSON.stringify(ov));
   }, 1200);
 
   await step('editor-reopen-existing', async () => {

@@ -351,6 +351,7 @@
       if (!ok) return false;
     }
     try {
+      if (E.isNew || (m.extra && m.extra.editor_frame)) m.extra.editor_overlay = true;   // местность рисует приложение по слоям (в картинке её нет)
       if (E.imgRoot !== 'maps') {      // первое сохранение новой карты: рамка (по желанию) и перенос картинки из временной папки в maps/<имя>/
         if (await VTT.ui.confirm({ title: tr('editor.frame.title'), text: tr('editor.frame.text'), ok: tr('editor.frame.ok'), cancel: tr('editor.frame.no') })) await applyFrame(true);
         else {

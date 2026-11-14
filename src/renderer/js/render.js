@@ -58,6 +58,66 @@
     };
     r.cellPx = function () { return (r.map ? r.map.ppg : 70) * r.camera.scale; };
 
+    // Местность карт из редактора (meta.editor_overlay): в картинке её нет, поэтому рисуем по слоям map.json.
+    // Карты скилла battle-map рисуют местность в самой картинке и флага не имеют. Результат кэшируется в канвасе 1 клетка = ppg px.
+    var OV_COLOR = { difficult: '#e0a020', water: '#2f7fe0', hole: '#111111', obstacle: '#8a8a8a', impassable: '#d03030' };
+    var OV_ALPHA = { difficult: 0.4, water: 0.45, hole: 0.7, obstacle: 0.6, impassable: 0.35 };
+    function ovElevColor(v, a) {
+      var t = Math.min(1, Math.abs(v) / 60);
+      if (v > 0) return 'hsla(' + Math.round(50 - 50 * t) + ',90%,' + Math.round(55 - 10 * t) + '%,' + a + ')';
+      return 'hsla(' + Math.round(200 + 30 * t) + ',80%,' + Math.round(60 - 15 * t) + '%,' + a + ')';
+    }
+    function overlayCanvas(m) {
+      if (m._ovl && m._ovl.src === m.meta) return m._ovl.cv;
+      var L = (m.meta && m.meta.layers) || {}, P = m.ppg, cols = m.cols, rows = m.rows;
+      var cv = document.createElement('canvas'); cv.width = Math.max(1, cols * P); cv.height = Math.max(1, rows * P);
+      var c = cv.getContext('2d'), x, y;
+      function cell(layer, xx, yy) { return L[layer] && L[layer][yy] ? L[layer][yy][xx] : undefined; }
+      function kind(xx, yy) {
+        if (cell('obstacle', xx, yy) == 1) return 'obstacle';
+        if (cell('hazard', xx, yy) === 'hole') return 'hole';
+        if (cell('walkable', xx, yy) == 0) return String(cell('terrain', xx, yy) || '').toLowerCase().indexOf('water') >= 0 ? 'water' : 'impassable';
+        if (cell('difficult', xx, yy) == 1) return 'difficult';
+        return 'normal';
+      }
+      for (y = 0; y < rows; y++) for (x = 0; x < cols; x++) {
+        var k = kind(x, y), e = +cell('elevation_ft', x, y) || 0;
+        if (k !== 'normal') {
+          c.globalAlpha = OV_ALPHA[k]; c.fillStyle = OV_COLOR[k]; c.fillRect(x * P, y * P, P, P);
+          if (k === 'obstacle' || k === 'impassable') {
+            c.globalAlpha = 0.9; c.strokeStyle = OV_COLOR[k]; c.lineWidth = 2; c.beginPath();
+            c.moveTo(x * P + 3, y * P + 3); c.lineTo((x + 1) * P - 3, (y + 1) * P - 3); c.moveTo((x + 1) * P - 3, y * P + 3); c.lineTo(x * P + 3, (y + 1) * P - 3); c.stroke();
+          }
+          if (k === 'difficult') {   // «◆◆» в углу клетки, как у карт скилла
+            c.globalAlpha = 1; c.fillStyle = '#f2b233'; c.strokeStyle = '#000'; c.lineWidth = 1;
+            [0.74, 0.9].forEach(function (dx) {
+              var cx = (x + dx) * P, cy = (y + 0.15) * P, rr = 0.07 * P;
+              c.beginPath(); c.moveTo(cx, cy - rr); c.lineTo(cx + rr, cy); c.lineTo(cx, cy + rr); c.lineTo(cx - rr, cy); c.closePath(); c.fill(); c.stroke();
+            });
+          }
+        }
+        if (e) { c.globalAlpha = 1; c.fillStyle = ovElevColor(e, 0.2); c.fillRect(x * P, y * P, P, P); }
+      }
+      c.globalAlpha = 1; c.lineCap = 'butt'; c.lineWidth = Math.max(2, P * 0.05);
+      function ev(xx, yy) { return xx < 0 || yy < 0 || xx >= cols || yy >= rows ? 0 : (+cell('elevation_ft', xx, yy) || 0); }
+      function edge(e1, e2, x1, y1, x2, y2) {
+        if (e1 === e2) return;
+        var v = Math.abs(e1) >= Math.abs(e2) ? e1 : e2;
+        c.strokeStyle = 'rgba(0,0,0,.7)'; c.lineWidth = Math.max(3, P * 0.09); c.setLineDash([]);
+        c.beginPath(); c.moveTo(x1 * P, y1 * P); c.lineTo(x2 * P, y2 * P); c.stroke();
+        c.strokeStyle = ovElevColor(v, 1); c.lineWidth = Math.max(2, P * 0.05); c.setLineDash([P * 0.25, P * 0.1]);
+        c.beginPath(); c.moveTo(x1 * P, y1 * P); c.lineTo(x2 * P, y2 * P); c.stroke(); c.setLineDash([]);
+      }
+      for (y = 0; y < rows; y++) for (x = 0; x < cols; x++) {
+        edge(ev(x, y), ev(x + 1, y), x + 1, y, x + 1, y + 1);
+        edge(ev(x, y), ev(x, y + 1), x, y + 1, x + 1, y + 1);
+        if (x === 0) edge(ev(x, y), 0, 0, y, 0, y + 1);
+        if (y === 0) edge(ev(x, y), 0, x, 0, x + 1, 0);
+      }
+      m._ovl = { src: m.meta, cv: cv };
+      return cv;
+    }
+
     function imgGrid(m) {
       var g = m.imageGrid;
       if (g && g.width > 0 && g.height > 0) return { x: g.x || 0, y: g.y || 0, width: g.width, height: g.height };
@@ -314,6 +374,7 @@
       var ig = imgGrid(m);
       if (m.image) ctx.drawImage(m.image, ox - ig.x * sc, oy - ig.y * sc, ig.width * sc, ig.height * sc);
       else { ctx.fillStyle = '#222'; ctx.fillRect(ox, oy, mw, mh); }
+      if (m.meta && m.meta.editor_overlay) ctx.drawImage(overlayCanvas(m), ox, oy, mw, mh);
       if (!s) return;
 
       // сетка
