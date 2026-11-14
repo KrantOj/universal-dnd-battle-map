@@ -1,7 +1,7 @@
 {
   "name": "universal-dnd-battle-map",
   "productName": "Universal DnD Battle map",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Battle map VTT for tabletop RPGs",
   "main": "src/main/main.js",
   "author": "KrantOj",

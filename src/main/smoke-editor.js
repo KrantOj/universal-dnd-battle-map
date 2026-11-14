@@ -77,8 +77,11 @@ module.exports = async function editorSmoke(k) {
   await step('editor-save', async () => {
     await exe("document.getElementById('edSave').click()");
     await sleep(500);
-    // замечания (если есть) — сохранить всё равно
-    await exe("(function(){var o=document.querySelector('.vtt-ui-btn-ok');if(o&&document.querySelector('.vtt-ui-backdrop'))o.click();})()");
+    // диалоги по очереди: «Рамка карты» — без рамки (иначе image_grid сдвигается); замечания (если есть) — сохранить всё равно
+    for (let i = 0; i < 3; i++) {
+      await exe("(function(){var b=document.querySelector('.vtt-ui-backdrop');if(!b)return;var fr=/рамк|frame/i.test(b.textContent);var x=b.querySelector(fr?'.vtt-ui-btn-cancel':'.vtt-ui-btn-ok');if(x)x.click();})()");
+      await sleep(500);
+    }
     await waitEd('!VTT.editor._state.isNew', 8000);
     must(fs.existsSync(jsonPath), 'map.json не записан: ' + jsonPath);
     const m = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));

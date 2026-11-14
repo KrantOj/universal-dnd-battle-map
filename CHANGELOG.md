@@ -3,6 +3,14 @@
 Формат раздела: `## [X.Y.Z] - дата`. Скрипт `npm run release` берёт текст раздела текущей версии из package.json как описание релиза.
 Section format: `## [X.Y.Z] - date`. `npm run release` uses the section of the current package.json version as the release notes.
 
+## [1.0.1] - 2026-11-14
+
+**RU**
+- Исправлено: у карт, созданных в редакторе из обычной картинки, не было подписей столбцов (A, B, …), строк (1, 2, …) и легенды. Теперь при первом сохранении редактор предлагает добавить рамку с заголовком, подписями столбцов и строк и легендой (масштаб); можно отказаться («Без рамки»).
+
+**EN**
+- Fixed: maps created in the editor from a plain image had no column (A, B, …) or row (1, 2, …) labels and no legend. On the first save the editor now offers to add a frame with a title, column and row labels and a legend (scale); you can decline ("No frame").
+
 ## [1.0.0] - 2026-11-13
 
 **RU**
