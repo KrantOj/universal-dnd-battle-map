@@ -3,6 +3,16 @@
 Формат раздела: `## [X.Y.Z] - дата`. Скрипт `npm run release` берёт текст раздела текущей версии из package.json как описание релиза.
 Section format: `## [X.Y.Z] - date`. `npm run release` uses the section of the current package.json version as the release notes.
 
+## [1.0.4] - 2026-11-16
+
+**RU**
+- 3D-кубики: бросок мастера в окне игроков теперь показывается объёмными кубиками (d2 «монета Кракена», d4, d6, d8, d10, d12, d20, d100 как пара десятков и единиц). Кубик кувыркается и останавливается гранью с выпавшим числом; противоположные грани дают N+1, у 6 и 9 есть подчёркивание. Формулы с несколькими кубиками (например, 4d6) показываются все сразу, отброшенный кубик тускнеет. Нестандартные кубики (d3, d7…), больше 10 кубиков в броске или отсутствие WebGL показываются прежним плоским способом.
+- Модели кубиков собираются из STL скриптом `node scripts/build-dice.js` (папка `assets/dice`).
+
+**EN**
+- 3D dice: a roll shown by the GM now plays out with 3D dice in the player window (d2 "Kraken coin", d4, d6, d8, d10, d12, d20, and d100 as a tens + units pair). The die tumbles and lands with the rolled number facing you; opposite faces add up to N+1, and 6 and 9 are underlined. Multi-dice formulas (e.g. 4d6) show every die at once, a dropped die fades out. Unusual dice (d3, d7…), more than 10 dice in one roll, or no WebGL fall back to the previous flat display.
+- Dice models are built from STL files by `node scripts/build-dice.js` (folder `assets/dice`).
+
 ## [1.0.3] - 2026-11-15
 
 **RU**

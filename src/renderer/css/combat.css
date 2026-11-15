@@ -85,6 +85,14 @@
 #rollShow.nat1 { color: #f85149; }
 #rollShow.nat1 .rs-num { color: #ffd8d5; }
 #rollShow.nat1.landed .rs-die { animation: rsShake .35s linear both; filter: drop-shadow(0 0 30px rgba(248,81,73,.75)) drop-shadow(0 14px 22px rgba(0,0,0,.75)); }
+/* 3D-режим (three.js): холст на весь экран под подписями, итог — под кубиками */
+#rollShow .rs-3d { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; display: none; z-index: 1; }
+#rollShow.d3 .rs-3d { display: block; }
+#rollShow.d3 .rs-die, #rollShow.d3 .rs-burst { display: none; }
+#rollShow.d3 .rs-who, #rollShow.d3 .rs-badge, #rollShow.d3 .rs-text, #rollShow.d3 .rs-stage { position: relative; z-index: 2; }
+#rollShow.d3 .rs-num { inset: auto 0 -14% 0; font-size: min(9vh, 76px); transform: none; }
+#rollShow.d3 .rs-num[data-len="3"] { font-size: min(8vh, 64px); } #rollShow.d3 .rs-num[data-len="4"] { font-size: min(6.5vh, 54px); }
+#rollShow.d3.throw:not(.landed) .rs-num { opacity: 0; animation: none; }
 @keyframes rsThrow {
   0%   { transform: translate(-62vw, 46vh) rotate3d(1, .6, .3, 0deg) scale(.35); opacity: 0; }
   8%   { opacity: 1; }

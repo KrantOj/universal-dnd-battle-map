@@ -90,7 +90,7 @@
       }
       var sum = 0;
       rolls.forEach(function (v, j) { if (kept[j]) sum += v; });
-      parts.push({ sign: t.sign, label: label(t), rolls: rolls, kept: kept, sum: sum });
+      parts.push({ sign: t.sign, label: label(t), rolls: rolls, kept: kept, sum: sum, sides: t.s });
       total += t.sign * sum;
       if (t.s === 20 && d20 === null) {
         var kv = rolls.filter(function (v, j) { return kept[j]; });
@@ -107,6 +107,16 @@
     var sides = 0;
     p.terms.forEach(function (t) { if (t.kind === 'dice' && t.s > sides) sides = t.s; });
     return { expr: String(expr).trim(), total: total, text: text + ' = ' + total, parts: parts, d20: d20, sides: sides || 20 };
+  }
+
+  // кубики броска для 3D-анимации: [{ s: граней, v: выпало, k: учитывается ли }] (константы не входят)
+  function faces(r) {
+    var out = [];
+    (r && r.parts || []).forEach(function (pt) {
+      if (!pt.sides) return;
+      pt.rolls.forEach(function (v, j) { out.push({ s: pt.sides, v: v, k: pt.kept[j] }); });
+    });
+    return out;
   }
 
   // ---- контурные значки кубиков (одна форма на количество граней; для кнопок и анимации) ----
@@ -133,5 +143,5 @@
     return '<svg viewBox="0 0 24 24"' + sz + ' fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">' + body + txt + '</svg>';
   }
 
-  VTT.dice = { parse: parse, roll: roll, svg: svg, MAX_COUNT: MAX_COUNT, MAX_SIDES: MAX_SIDES };
+  VTT.dice = { parse: parse, roll: roll, faces: faces, svg: svg, MAX_COUNT: MAX_COUNT, MAX_SIDES: MAX_SIDES };
 })();

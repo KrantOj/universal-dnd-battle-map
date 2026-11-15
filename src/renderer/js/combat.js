@@ -185,7 +185,8 @@
     });
   }
   function sendRoll(r, who) {
-    VTT.sync.send({ t: 'roll', who: who || '', expr: r.expr, total: r.total, text: r.text, d20: r.d20, sides: r.sides });
+    var dc = VTT.dice.faces(r);
+    VTT.sync.send({ t: 'roll', who: who || '', expr: r.expr, total: r.total, text: r.text, d20: r.d20, sides: r.sides, dice: dc.length <= 24 ? dc : null });
   }
   function doRoll(expr, who) {
     var r;

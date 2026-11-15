@@ -244,7 +244,7 @@
     rollBusy = true;
     displayRoll(msg, rollQ.length ? 1200 : 2500);
   }
-  var rollLand = null, rollFlick = null;
+  var rollLand = null, rollFlick = null, roll3d = null;
   var THROW_MS = 600;   // длительность броска (CSS-анимация rsThrow в combat.css)
   function q(sel) { return rollEl.querySelector(sel); }
   // Кубик влетает, кувыркается, подпрыгивает и замирает на результате (как в Baldur's Gate 3); числа на нём мелькают.
@@ -252,20 +252,29 @@
     if (!rollEl) {
       rollEl = document.createElement('div');
       rollEl.id = 'rollShow';
-      rollEl.innerHTML = '<div class="rs-who"></div><div class="rs-stage"><div class="rs-burst"></div><div class="rs-die"></div><div class="rs-num"></div></div>' +
+      rollEl.innerHTML = '<div class="rs-who"></div><canvas class="rs-3d"></canvas><div class="rs-stage"><div class="rs-burst"></div><div class="rs-die"></div><div class="rs-num"></div></div>' +
         '<div class="rs-badge"></div><div class="rs-text"></div>';
       document.body.appendChild(rollEl);
     }
     clearTimeout(rollTimer); clearTimeout(rollLand); clearInterval(rollFlick);
+    if (roll3d) { roll3d.stop(); roll3d = null; }
     var sides = msg.sides || 20, num = q('.rs-num');
+    var use3d = !!(VTT.dice3d && VTT.dice3d.available(msg.dice));
     q('.rs-who').textContent = (msg.who ? msg.who + ' · ' : '') + (msg.expr || '');
     q('.rs-die').innerHTML = VTT.dice.svg(sides, { label: '' });
     q('.rs-badge').textContent = ''; q('.rs-text').textContent = '';
     num.textContent = ''; num.removeAttribute('data-len');
-    rollEl.classList.remove('landed', 'nat20', 'nat1', 'throw', 'on');
+    rollEl.classList.remove('landed', 'nat20', 'nat1', 'throw', 'on', 'd3');
     void rollEl.offsetWidth;                                  // перезапуск CSS-анимации
     rollEl.classList.add('on', 'throw');
-    rollFlick = setInterval(function () { num.textContent = String(1 + Math.floor(Math.random() * sides)); }, 55);
+    var throwMs = THROW_MS;
+    if (use3d) {
+      // 3D-кубики: центр сцены — по рамке .rs-stage; результат известен заранее, кубик лишь «приземляется» на нужную грань
+      var box = q('.rs-stage').getBoundingClientRect();
+      roll3d = VTT.dice3d.play(q('.rs-3d'), msg.dice, { cx: box.left + box.width / 2, cy: box.top + box.height * 0.42, size: box.width * 0.9, fast: rollQ.length > 0 });
+      if (roll3d) { rollEl.classList.add('d3'); throwMs = roll3d.landMs; } else use3d = false;
+    }
+    if (!use3d) rollFlick = setInterval(function () { num.textContent = String(1 + Math.floor(Math.random() * sides)); }, 55);
     rollLand = setTimeout(function () {
       clearInterval(rollFlick);
       var tot = String(msg.total);
@@ -274,12 +283,12 @@
       if (msg.d20 === 20) { rollEl.classList.add('nat20'); q('.rs-badge').textContent = tr('player.crit.success'); }
       else if (msg.d20 === 1) { rollEl.classList.add('nat1'); q('.rs-badge').textContent = tr('player.crit.fail'); }
       q('.rs-text').textContent = msg.text || '';
-    }, THROW_MS);
+    }, throwMs);
     rollTimer = setTimeout(function () {
       clearInterval(rollFlick);
       if (rollQ.length) nextRoll();
       else { rollEl.classList.remove('on'); rollBusy = false; }
-    }, Math.max(ms, THROW_MS + 600));
+    }, Math.max(ms, throwMs + (use3d ? 1400 : 600)));
   }
 
   function toggleFullscreen() {
