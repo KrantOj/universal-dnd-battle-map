@@ -16,8 +16,14 @@
     go.hidden = true;
     if (st === 'available') {
       $('updTxt').textContent = tr('update.bar.available', { version: s.version });
-      go.textContent = tr('update.bar.release'); go.hidden = false;
-      go.onclick = function () { window.host.update.openRelease().catch(function () { /* ignore */ }); };
+      go.hidden = false;
+      if (s.mode === 'nsis') {                       // установленная версия: качаем только с согласия пользователя
+        go.textContent = tr('update.bar.download');
+        go.onclick = function () { go.disabled = true; window.host.update.download().catch(function () { /* вернёт состояние main */ }).then(function () { go.disabled = false; }); };
+      } else {
+        go.textContent = tr('update.bar.release');
+        go.onclick = function () { window.host.update.openRelease().catch(function () { /* ignore */ }); };
+      }
     } else if (st === 'downloading') {
       $('updTxt').textContent = tr('update.bar.downloading', { version: s.version, n: s.progress || 0 });
     } else {

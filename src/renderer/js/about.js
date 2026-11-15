@@ -9,6 +9,7 @@
   function paint(s) {
     if (!s) return;
     var st = s.status;
+    $('abDownload').hidden = !(s.mode === 'nsis' && st === 'available');
     $('abInstall').hidden = !(s.mode === 'nsis' && st === 'downloaded');
     $('abRelease').hidden = !(s.mode === 'portable' && st === 'available');
     $('abCheck').disabled = st === 'checking' || st === 'downloading';
@@ -28,6 +29,7 @@
     H.app.license().then(function (t) { $('abLic').textContent = t || 'MIT License'; });
     $('abRepo').onclick = function (e) { e.preventDefault(); H.app.openExternal(REPO).catch(function () { /* ignore */ }); };
     $('abClose').onclick = function () { window.close(); };
+    $('abDownload').onclick = function () { H.update.download(); };
     $('abInstall').onclick = function () { H.update.install(); };
     $('abRelease').onclick = function () { H.update.openRelease().catch(function () { /* ignore */ }); };
     $('abCheck').onclick = function () {

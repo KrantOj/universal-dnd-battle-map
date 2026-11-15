@@ -1,5 +1,6 @@
 'use strict';
-// Автообновление. Установленная версия (NSIS): electron-updater (скачивает в фоне, ставит по «Установить и перезапустить»).
+// Автообновление. Установленная версия (NSIS): electron-updater. О новой версии только сообщаем; скачивание — по кнопке «Скачать обновление»
+// (спрашиваем пользователя), установка — по «Установить и перезапустить».
 // Portable: ничего не ставим — спрашиваем GitHub API, есть ли релиз новее, и показываем ссылку на страницу релиза.
 // Ошибки (нет сети, нет релизов, 404) — только в лог, без сообщений в интерфейсе (кроме ручной проверки из «О программе»).
 const { app, net } = require('electron');
@@ -39,9 +40,19 @@ async function checkNsis() {
   const info = r && r.updateInfo;
   if (!info || !L.isStable(info.version) || !L.isNewer(info.version, app.getVersion())) return 'uptodate';
   if (state.status === 'downloading' || state.status === 'downloaded') return 'busy';
-  publish({ status: 'downloading', version: info.version, progress: 0, url: `${L.RELEASES_URL}/tag/v${info.version}` });
-  u.downloadUpdate().catch((e) => { logger.log.warn('update download failed: ' + (e && e.message)); publish({ status: 'idle', version: null }); });
+  publish({ status: 'available', version: info.version, progress: 0, url: `${L.RELEASES_URL}/tag/v${info.version}` });   // сами ничего не качаем — ждём согласия пользователя
   return 'available';
+}
+
+/** Пользователь согласился скачать (кнопка «Скачать обновление»). Только для установленной версии и только после проверки. */
+function download() {
+  if (state.mode !== 'nsis' || state.status !== 'available') return false;
+  publish({ status: 'downloading', progress: 0 });
+  autoUpdater().downloadUpdate().catch((e) => {
+    logger.log.warn('update download failed: ' + (e && e.message));
+    publish({ status: 'available', progress: 0 });     // можно нажать «Скачать» ещё раз
+  });
+  return true;
 }
 
 function getJson(url) {
@@ -96,4 +107,4 @@ function stop() { clearTimeout(firstTimer); clearInterval(timer); }
 /** Настройка «Проверять обновления» изменилась: включили — проверяем сразу. */
 function onSettingsChanged() { if (enabled() && state.mode !== 'dev') setTimeout(() => { check(false); }, 1000); }
 
-module.exports = { start, stop, check, install, getState, onSettingsChanged };
+module.exports = { start, stop, check, download, install, getState, onSettingsChanged };

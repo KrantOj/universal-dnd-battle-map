@@ -37,6 +37,7 @@ function register() {
   h('app:openExternal', (e, url) => { if (!links.isAllowedExternal(url)) throw new Error('URL_NOT_ALLOWED'); return shell.openExternal(String(url)); });
   h('update:state', () => updater.getState());
   h('update:check', () => updater.check(true));
+  h('update:download', () => updater.download());
   h('update:install', () => updater.install());
   h('update:openRelease', () => { const u = updater.getState().url || require('./update-logic').RELEASES_URL; if (!links.isAllowedExternal(u)) throw new Error('URL_NOT_ALLOWED'); return shell.openExternal(u); });
   h('app:defaultDataDir', (e, n) => campaigns.defaultDataDir(n));

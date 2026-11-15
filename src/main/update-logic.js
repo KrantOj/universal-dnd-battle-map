@@ -32,7 +32,7 @@ function detectMode({ portableDir, isPackaged }) {
   return isPackaged ? 'nsis' : 'dev';
 }
 
-/** Что делать при проверке: 'install' (скачать и поставить), 'notify' (только сообщить), 'off'. manual — нажата кнопка «Проверить». */
+/** Что делать при проверке: 'install' (проверить и сообщить; скачивает и ставит уже пользователь по кнопкам), 'notify' (только сообщить), 'off'. manual — нажата кнопка «Проверить». */
 function decide({ mode, enabled, manual }) {
   if (mode === 'dev') return 'off';
   if (!enabled && !manual) return 'off';

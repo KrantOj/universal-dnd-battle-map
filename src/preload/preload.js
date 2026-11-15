@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('host', {
   update: {
     state: () => inv('update:state'),
     check: () => inv('update:check'),
+    download: () => inv('update:download'),
     install: () => inv('update:install'),
     openRelease: () => inv('update:openRelease'),
     onState: (cb) => sub('update:state', cb),
