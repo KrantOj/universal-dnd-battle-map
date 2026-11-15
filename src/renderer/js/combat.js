@@ -346,7 +346,7 @@
     l2.appendChild(hp); l2.appendChild(dmg); l2.appendChild(mx); l2.appendChild(ac); l2.appendChild(tm); l2.appendChild(md);
     row.appendChild(l1); row.appendChild(l2);
     paintHp(row, t);
-    row.oncontextmenu = function (e) { e.preventDefault(); };
+    row.oncontextmenu = function (e) { e.preventDefault(); A().showTokenMenu(e.clientX, e.clientY, t); };
     return row;
   }
 

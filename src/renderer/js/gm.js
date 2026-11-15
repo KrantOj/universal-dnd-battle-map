@@ -49,6 +49,8 @@
     sc.settings = Object.assign(defaults(), sc.settings || {});
     if (typeof sc.settings.labelsGM !== 'boolean') sc.settings.labelsGM = true;
     if (typeof sc.settings.labelsPlayer !== 'boolean') sc.settings.labelsPlayer = true;
+    sc.labels = Array.isArray(sc.labels) ? sc.labels : [];                                    // подписи, добавленные мастером в бою
+    sc.labelVis = sc.labelVis && typeof sc.labelVis === 'object' ? sc.labelVis : {};         // переопределение показа подписей карты: ключ → true/false (виден игрокам)
     sc.round = sc.round || 1;
     sc.map = map.name;
     sc.version = 1;
@@ -97,11 +99,65 @@
       if (S.scene) VTT.store.saveScene(S.scene).catch(function (e) { console.warn('save', e); });
     }, 500);
   }
+  // ------------------------------------------------------------------ подписи
+  // Подписи карты (из редактора, поле hidden — скрыта по умолчанию) + подписи мастера из сцены. Игрокам уходят только открытые.
+  function labelKey(lb) { return lb.text + '|' + lb.x + '|' + lb.y; }
+  function labelList() {
+    var sc = S.scene, out = [];
+    if (!sc || !S.map) return out;
+    var vis = sc.labelVis || {};
+    (S.map.labels || []).forEach(function (lb) {
+      if (!lb || !lb.text) return;
+      var k = labelKey(lb), c = Object.assign({}, lb);
+      c.hidden = k in vis ? !vis[k] : !!lb.hidden; c._key = k; c._own = false;
+      out.push(c);
+    });
+    (sc.labels || []).forEach(function (lb, i) {
+      if (!lb || !lb.text) return;
+      out.push(Object.assign({}, lb, { hidden: !!lb.hidden, _own: true, _i: i }));
+    });
+    return out;
+  }
+  function labelsForPlayers() {
+    return labelList().filter(function (l) { return !l.hidden; }).map(function (l) { return { text: l.text, x: l.x, y: l.y, size: l.size, kind: l.kind }; });
+  }
+  function labelAt(fx, fy) {
+    var list = labelList();
+    for (var i = list.length - 1; i >= 0; i--) {
+      var l = list[i], sz = l.size || (l.kind === 'area' ? 0.42 : 0.26);
+      if (Math.abs(fx - l.x) <= Math.max(0.3, l.text.length * sz * 0.3) && Math.abs(fy - l.y) <= Math.max(0.3, sz * 0.6)) return l;
+    }
+    return null;
+  }
+  function toggleLabel(l) {
+    var sc = S.scene;
+    if (l._own) sc.labels[l._i].hidden = !l.hidden;
+    else sc.labelVis[l._key] = l.hidden;           // hidden → показать; открыта → скрыть
+    toast(tr(l.hidden ? 'gm.toast.labelShown' : 'gm.toast.labelHidden', { text: l.text }));
+    changed({ noList: true });
+  }
+  function labelClick(c, e) {
+    var l = labelAt(c.fx, c.fy);
+    if (l) {
+      if (e.shiftKey && l._own) { S.scene.labels.splice(l._i, 1); toast(tr('gm.toast.labelDeleted')); changed({ noList: true }); }
+      else toggleLabel(l);
+      return;
+    }
+    var fx = Math.round(c.fx * 2) / 2, fy = Math.round(c.fy * 2) / 2;
+    VTT.ui.prompt({ title: tr('gm.label.addTitle'), text: tr('gm.label.addText'), value: '' }).then(function (v) {
+      v = String(v || '').trim();
+      if (!v) return;
+      S.scene.labels.push({ text: v.slice(0, 80), x: fx, y: fy, size: 0.3, kind: 'place', hidden: true });
+      toast(tr('gm.toast.labelAdded'));
+      changed({ noList: true });
+    });
+  }
+
   function pushMap() {
     if (!S.map || !VTT.sync.isOpen()) return;
     S.sentImages = {};
     VTT.sync.send({ t: 'map', name: S.map.name, cols: S.map.cols, rows: S.map.rows, ppg: S.map.ppg, image: S.map.imageURL,
-      imageGrid: S.map.imageGrid, labels: S.map.labels || [], geoDoors: S.map.geo.doors });
+      imageGrid: S.map.imageGrid, labels: [], geoDoors: S.map.geo.doors });
     pushState();
   }
   function pushState() {
@@ -127,7 +183,7 @@
     var mode = sc.settings.playerView;
     if (mode === 'gm' && !S.sentView) S.sentView = S.r.getView();
     VTT.sync.send({
-      t: 'state', tokens: vis, fog: sc.fog, doors: sc.doors, settings: sc.settings,
+      t: 'state', tokens: vis, fog: sc.fog, doors: sc.doors, settings: sc.settings, labels: labelsForPlayers(),
       view: mode === 'gm' ? S.sentView : S.r.getView(), round: sc.round,
       turnId: sc.combat && sc.combat.active ? sc.combat.turnId : null,
       queue: queue
@@ -296,9 +352,18 @@
     }
     return setFog(idx, val);
   }
+  // открывает ли токен туман войны: по умолчанию только персонажи, остальным — флаг fogReveal вручную
+  function opensFog(t) { return t.fogReveal === undefined || t.fogReveal === null ? t.kind === 'pc' : !!t.fogReveal; }
+  // включить/выключить открытие тумана для токена уже на карте (из контекстного меню)
+  function toggleFogReveal(t) {
+    t.fogReveal = !opensFog(t);
+    toast(tr(t.fogReveal ? 'gm.toast.fogOn' : 'gm.toast.fogOff', { name: t.name }));
+    if (t.fogReveal) autoReveal(t, true);
+    changed();
+  }
   function autoReveal(t, force) {
     var st = S.scene.settings;
-    if ((!st.autoReveal && !force) || (t.kind !== 'pc' && t.kind !== 'ally')) return false;
+    if ((!st.autoReveal && !force) || !opensFog(t)) return false;
     if (t.status === 'dead' || t.status === 'unconscious') return false;
     var size = t.size || 1, off = (size - 1) / 2;
     var rad = (t.vision || 0) / (S.map.feet || 5) + off;
@@ -312,7 +377,7 @@
     if (!S.map) return;
     var ch = false, n = 0;
     S.scene.tokens.forEach(function (t) {
-      if ((t.kind !== 'pc' && t.kind !== 'ally') || t.status === 'dead' || t.status === 'unconscious') return;
+      if (!opensFog(t) || t.status === 'dead' || t.status === 'unconscious') return;
       n++; if (autoReveal(t, true)) ch = true;
     });
     if (ch) changed({ noList: true }); else S.r.requestDraw();
@@ -509,7 +574,7 @@
   function toTemplate(t) {
     return { lid: newId(), updated: Date.now(), name: baseOf(t.name), label: t.label, color: t.color, kind: t.kind, size: t.size,
              speed: t.speed, vision: t.vision, image: t.image || null, hidden: false, category: t.category || '',
-             maxHp: t.maxHp || 0, ac: t.ac || 0, team: t.team || 0, initMod: t.initMod || 0 };
+             maxHp: t.maxHp || 0, ac: t.ac || 0, team: t.team || 0, initMod: t.initMod || 0, fogReveal: opensFog(t) };
   }
   function migrateLib(arr) {
     var now = Date.now(), seen = {};
@@ -537,7 +602,7 @@
     var tpl = S.lib.filter(function (l) { return l.lid === t.lid; })[0];
     if (tpl) {
       Object.assign(tpl, { name: baseOf(t.name), label: t.label, color: t.color, kind: t.kind, size: t.size,
-        speed: t.speed, vision: t.vision, image: t.image || null, maxHp: t.maxHp || 0, ac: t.ac || 0, team: t.team || 0, initMod: t.initMod || 0, updated: Date.now() });
+        speed: t.speed, vision: t.vision, image: t.image || null, maxHp: t.maxHp || 0, ac: t.ac || 0, team: t.team || 0, initMod: t.initMod || 0, fogReveal: opensFog(t), updated: Date.now() });
       libChanged();
       toast(tr('gm.toast.templateUpdated'));
     } else {
@@ -829,6 +894,7 @@
         return { label: STATUS_NAMES[k], cur: t.status === k, fn: function () { setStatus(t, k); } };
       }) },
       { label: t.hidden ? tr('gm.menu.showPlayers') : tr('gm.menu.hidePlayers'), fn: function () { toggleHidden(t); } },
+      { label: opensFog(t) ? tr('gm.menu.fogOff') : tr('gm.menu.fogOn'), fn: function () { toggleFogReveal(t); } },
       { label: tr('gm.menu.edit'), fn: function () { openTokenDialog('edit', t); } },
       { label: tr('gm.menu.duplicate'), fn: function () { duplicate(t); } },
       { label: tr('gm.menu.toLibrary'), fn: function () { addToLibrary(t); } },
@@ -966,6 +1032,8 @@
         S.rect = { x0: c.x, y0: c.y, x1: c.x, y1: c.y };
       } else if (S.tool === 'doors') {
         toggleDoorAt(c.fx, c.fy);
+      } else if (S.tool === 'label') {
+        labelClick(c, e);
       }
     });
     cv.addEventListener('pointermove', function (e) {
@@ -1047,6 +1115,7 @@
         case 'KeyR': setTool(e.shiftKey ? 'rect' : 'reveal'); return;
         case 'KeyH': setTool('hide'); return;
         case 'KeyD': setTool('doors'); return;
+        case 'KeyL': setTool('label'); return;
         case 'Digit1': setBrush(1); return;
         case 'Digit3': setBrush(3); return;
         case 'Digit5': setBrush(5); return;
@@ -1320,6 +1389,7 @@
   VTT.gm = {
     init: async function () {
       S.r = VTT.render.createRenderer($('canvas'), { mode: 'gm' });
+      S.r.labelSource = labelList;
       S.r.overlay = overlay;
       VTT.sync.initGm();
       bindUI(); bindDialog(); bindCanvas(); bindKeys();
@@ -1338,6 +1408,6 @@
     reinit: reinit,
     _state: S,
     _api: { openMap: openMap, pushMap: pushMap, pushState: pushState, setStatus: setStatus, placeToken: placeToken, startPlacement: startPlacement, duplicate: duplicate,
-            changed: changed, selectToken: selectToken, newRound: newRound, toast: toast, getToken: getToken }
+            changed: changed, showTokenMenu: showTokenMenu, selectToken: selectToken, newRound: newRound, toast: toast, getToken: getToken }
   };
 })();

@@ -12,7 +12,8 @@
   var STAGE = 'editor-stage';       // data/editor-stage/<имя>/<картинка> — новая карта до первого сохранения
   var E = {
     model: null, img: null, hist: null, savedSnap: null, entryRel: null, imgRel: null, imgRoot: 'maps', isNew: false,
-    tool: 'select', vis: { walls: true, terrain: true, elev: true, grid: true },
+    tool: 'select', vis: { walls: true, terrain: true, elev: true, grid: true, labels: true },
+    selLabel: null, lbl: { kind: 'place', size: 0.3, hidden: false },
     sel: null, pv: {}, kind: 'difficult', shape: 'brush', size: 1, fillWalls: true, doorOpen: false,
     view: null, drag: null, wallPts: null, boxMode: false, box: null, spanMode: false, span: null, space: false, pan: null, hoverCell: null
   };
@@ -94,7 +95,7 @@
     var s = redo ? E.hist.redo() : E.hist.undo();
     if (s === null) return;
     M().restore(E.model, s);
-    E.sel = null; E.wallPts = null; E.pv = {}; E.drag = null;
+    E.sel = null; E.selLabel = null; E.wallPts = null; E.pv = {}; E.drag = null;
     updateDirty(); scheduleDraft(); syncPanel(); requestDraw();
   }
 
@@ -118,6 +119,7 @@
     Array.prototype.forEach.call(document.querySelectorAll('.siz'), function (b) { b.classList.toggle('active', +b.getAttribute('data-size') === E.size); });
     $('sizes').hidden = E.shape !== 'brush'; $('fWalls').parentNode.hidden = E.shape !== 'fill';
     syncSelection();
+    syncLabelPanel();
   }
   function syncSelection() {
     var s = E.sel, m = E.model, info = tr('editor.select.none');
@@ -133,9 +135,47 @@
     $('sInfo').textContent = info;
     $('sOpenRow').hidden = !isDoor; $('sDoorWall').hidden = !isDoor; $('sDoorGap').hidden = !isDoor; $('sDel').hidden = !isPt;
   }
+  // ------------------------------------------------------------------ подписи (текст на карте)
+  function labelOf() { var m = E.model; return m && E.selLabel !== null && E.selLabel !== undefined ? m.labels[E.selLabel] || null : null; }
+  function labelSize(l) { return l.size || (l.kind === 'area' ? 0.42 : 0.26); }
+  function labelHit(c) {
+    var list = E.model.labels || [];
+    for (var i = list.length - 1; i >= 0; i--) {
+      var l = list[i]; if (!l || !l.text) continue;
+      var sz = labelSize(l);
+      if (Math.abs(c.fx - l.x) <= Math.max(0.3, l.text.length * sz * 0.3) && Math.abs(c.fy - l.y) <= Math.max(0.3, sz * 0.6)) return i;
+    }
+    return -1;
+  }
+  function syncLabelPanel() {
+    var l = labelOf(), set = function (id, v) { if (document.activeElement !== $(id)) $(id).value = v; };
+    $('lInfo').textContent = l ? tr('editor.label.selected') : tr('editor.label.none');
+    $('lDel').hidden = !l;
+    set('lText', l ? l.text : '');
+    $('lText').disabled = !l;
+    set('lKind', l ? (l.kind === 'area' ? 'area' : 'place') : E.lbl.kind);
+    set('lSize', l ? labelSize(l) : E.lbl.size);
+    $('lHidden').checked = l ? !!l.hidden : E.lbl.hidden;
+  }
+  function applyLabelFields(commitNow) {
+    var l = labelOf(), kind = $('lKind').value, size = Math.max(0.1, Math.min(3, parseFloat($('lSize').value) || 0.3)), hidden = $('lHidden').checked;
+    E.lbl = { kind: kind, size: size, hidden: hidden };
+    if (l) {
+      var txt = $('lText').value;
+      if (txt.trim()) l.text = txt.slice(0, 80);
+      l.kind = kind; l.size = size;
+      if (hidden) l.hidden = true; else delete l.hidden;
+      updateDirty(); requestDraw();
+      if (commitNow) commit(); else commitSoon();
+    }
+  }
+  function deleteLabel() {
+    var l = labelOf(); if (!l) return;
+    E.model.labels.splice(E.selLabel, 1); E.selLabel = null; commit();
+  }
   function setTool(t) {
     if (E.wallPts && t !== 'wall') E.wallPts = null;
-    E.tool = t; E.sel = null; E.pv = {}; E.drag = null;
+    E.tool = t; E.sel = null; E.selLabel = null; E.pv = {}; E.drag = null;
     if (t !== 'grid') { E.boxMode = false; E.spanMode = false; E.span = null; }
     syncPanel(); requestDraw();
   }
@@ -471,6 +511,24 @@
       var h = M().hit(m, c.fx, c.fy, tolCells());
       E.sel = h; syncSelection();
       if (h && h.kind === 'point') E.drag = { t: 'pt', wi: h.wi, pi: h.pi, moved: false };
+    } else if (t === 'label') {
+      var li = labelHit(c);
+      if (li >= 0) {
+        E.selLabel = li; E.drag = { t: 'label', i: li, dx: c.fx - m.labels[li].x, dy: c.fy - m.labels[li].y, moved: false };
+        syncLabelPanel();
+      } else {
+        E.selLabel = null; syncLabelPanel();
+        var pos = snap(c, e);
+        var half = { x: Math.round(c.fx * 2) / 2, y: Math.round(c.fy * 2) / 2 };
+        if (!e.altKey) pos = half;
+        VTT.ui.prompt({ title: tr('editor.label.addTitle'), text: tr('editor.label.addText'), value: '' }).then(function (v) {
+          v = String(v || '').trim();
+          if (!v || !E.model) return;
+          var nl = { text: v.slice(0, 80), x: pos.x, y: pos.y, size: E.lbl.size, kind: E.lbl.kind };
+          if (E.lbl.hidden) nl.hidden = true;
+          E.model.labels.push(nl); E.selLabel = E.model.labels.length - 1; commit();
+        });
+      }
     } else if (t === 'wall') {
       var p = snap(c, e);
       E.wallPts = E.wallPts || []; E.wallPts.push(p);
@@ -504,6 +562,10 @@
     if (d && d.t === 'corner') { E.box = { x: Math.min(d.fx, c.px), y: Math.min(d.fy, c.py), w: Math.abs(c.px - d.fx), h: Math.abs(c.py - d.fy) }; applyBox(); }
     else if (d && d.t === 'boxmove') { E.box.x = c.px - d.dx; E.box.y = c.py - d.dy; applyBox(); }
     else if (d && d.t === 'pt') { var p = snap(c, e); M().movePoint(m, d.wi, d.pi, p.x, p.y); d.moved = true; syncSelection(); }
+    else if (d && d.t === 'label') {
+      var lb = m.labels[d.i];
+      if (lb) { var np = e.altKey ? { x: M().round2(c.fx - d.dx), y: M().round2(c.fy - d.dy) } : { x: Math.round((c.fx - d.dx) * 4) / 4, y: Math.round((c.fy - d.dy) * 4) / 4 }; lb.x = np.x; lb.y = np.y; d.moved = true; }
+    }
     else if (d && d.t === 'door') { E.pv.door = M().doorSpan(m, d.ax, d.ay, c.fx, c.fy) || M().doorAt(m, d.ax, d.ay); }
     else if (d && d.t === 'paint') { paintAt({ x: x, y: y }); }
     else if (d && d.t === 'rect') { E.pv.cells = M().rectCells(m, d.x0, d.y0, x, y); }
@@ -525,7 +587,7 @@
     } else if (d.t === 'rect') {
       var sp = pointerPos(e), c = toCell(sp.x, sp.y);
       applyCells(M().rectCells(m, d.x0, d.y0, Math.floor(c.fx), Math.floor(c.fy))); E.pv.cells = null; commit();
-    } else if (d.t === 'paint' || (d.t === 'pt' && d.moved) || d.t === 'corner' || d.t === 'boxmove') commit();
+    } else if (d.t === 'paint' || (d.t === 'pt' && d.moved) || (d.t === 'label' && d.moved) || d.t === 'corner' || d.t === 'boxmove') commit();
     requestDraw();
   }
   function onDbl(e) {
@@ -557,6 +619,7 @@
     if (k === 'Enter' && E.tool === 'wall') { finishWall(); return; }
     if (k === 'Escape') { E.wallPts = null; E.pv = {}; E.boxMode = false; E.spanMode = false; E.span = null; E.sel = null; syncPanel(); requestDraw(); return; }
     if (k === 'Backspace' && E.tool === 'wall' && E.wallPts) { E.wallPts.pop(); if (!E.wallPts.length) E.wallPts = null; E.pv.wall = null; requestDraw(); return; }
+    if ((k === 'Delete' || k === 'Backspace') && E.tool === 'label') { e.preventDefault(); deleteLabel(); return; }
     if ((k === 'Delete' || k === 'Backspace') && E.tool === 'select') { e.preventDefault(); deleteSelection(e.shiftKey); return; }
     if (E.tool === 'grid' && k.indexOf('Arrow') === 0) {
       e.preventDefault();
@@ -565,7 +628,7 @@
       if (ctrl) applyGrid({ ppg: Math.max(1, m.ppg + dx - dy) }); else applyGrid({ ppg: m.ppg, offX: m.offX + dx, offY: m.offY + dy });
       commitSoon(); return;
     }
-    var map = { g: 'grid', v: 'select', w: 'wall', d: 'door', t: 'terrain', h: 'elev' };
+    var map = { g: 'grid', v: 'select', w: 'wall', d: 'door', t: 'terrain', h: 'elev', l: 'label' };
     if (!ctrl && map[k.toLowerCase()]) setTool(map[k.toLowerCase()]);
   }
 
@@ -617,6 +680,9 @@
     $('sDel').onclick = function () { deleteSelection(false); };
     $('sDoorWall').onclick = function () { deleteSelection(false); };
     $('sDoorGap').onclick = function () { var s = E.sel; if (s && s.kind === 'door') { M().removeDoor(E.model, s.di, false); E.sel = null; commit(); } };
+    $('lText').oninput = function () { applyLabelFields(false); };
+    ['lKind', 'lSize', 'lHidden'].forEach(function (id) { $(id).onchange = function () { applyLabelFields(true); }; });
+    $('lDel').onclick = deleteLabel;
     $('wFinish').onclick = finishWall; $('wCancel').onclick = function () { E.wallPts = null; E.pv = {}; requestDraw(); };
 
     var cv = $('edCanvas');

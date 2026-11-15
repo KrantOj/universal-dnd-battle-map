@@ -143,6 +143,25 @@
         }
       }
 
+      // подписи: скрытые от игроков — бледные; выбранная обведена
+      if (E.vis.labels !== false && m.labels && m.labels.length) {
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+        m.labels.forEach(function (lb, i) {
+          if (!lb || !lb.text) return;
+          var fs = (lb.size || (lb.kind === 'area' ? 0.42 : 0.26)) * P, lx = cx(lb.x), ly = cy(lb.y);
+          ctx.font = (lb.kind === 'area' ? 'italic ' : '') + fs + "px Georgia, 'Times New Roman', serif";
+          ctx.globalAlpha = lb.hidden ? 0.5 : 1;
+          ctx.lineWidth = fs * 0.21; ctx.strokeStyle = '#000'; ctx.fillStyle = lb.hidden ? '#9fc3ff' : '#f3e6c4';
+          ctx.strokeText(lb.text, lx, ly); ctx.fillText(lb.text, lx, ly);
+          ctx.globalAlpha = 1;
+          if (E.tool === 'label' && E.selLabel === i) {
+            var w = ctx.measureText(lb.text).width;
+            ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 2 * px; ctx.setLineDash([5 * px, 3 * px]);
+            ctx.strokeRect(lx - w / 2 - 4 * px, ly - fs * 0.65, w + 8 * px, fs * 1.3); ctx.setLineDash([]);
+          }
+        });
+      }
+
       // предпросмотр инструментов
       var pv = E.pv || {};
       if (pv.wall && pv.wall.length) {

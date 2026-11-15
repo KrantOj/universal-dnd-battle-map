@@ -3,6 +3,16 @@
 Формат раздела: `## [X.Y.Z] - дата`. Скрипт `npm run release` берёт текст раздела текущей версии из package.json как описание релиза.
 Section format: `## [X.Y.Z] - date`. `npm run release` uses the section of the current package.json version as the release notes.
 
+## [1.0.3] - 2026-11-15
+
+**RU**
+- Туман войны теперь открывают только персонажи. Союзники, враги и нейтральные токены его не открывают; для токена на карте это включается вручную в контекстном меню (правый клик по токену, по строке в списке токенов или по плашке в порядке хода): «Открывать туман войны». Старые союзники по умолчанию не открывают туман.
+- Подписи и текст на карте: в редакторе новый инструмент «Текст (L)» и слой «Подписи» (добавление, перенос, вид, размер, скрытие от игроков). В бою новый инструмент «Подписи (L)»: клик по подписи показывает/скрывает её для игроков, клик по пустому месту добавляет свою подпись (скрыта по умолчанию), Shift+клик удаляет её. Скрытые подписи игрокам не отправляются вообще.
+
+**EN**
+- Only player characters now reveal the fog of war. Allies, enemies and neutral tokens no longer do; for a token on the map this is enabled manually from its context menu (right-click the token, its row in the token list or its plate in the turn order): "Reveal fog of war". Existing allies do not reveal fog by default.
+- Map labels and text: the editor has a new "Text (L)" tool and a "Labels" layer (add, move, kind, size, hide from players). In battle there is a new "Labels (L)" tool: click a label to show/hide it for players, click empty space to add your own label (hidden by default), Shift+click deletes it. Hidden labels are never sent to players at all.
+
 ## [1.0.2] - 2026-11-14
 
 **RU**

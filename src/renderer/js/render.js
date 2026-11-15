@@ -418,17 +418,20 @@
 
       // подписи (после тумана; игрокам — только в открытых клетках)
       var showLabels = gm ? s.settings.labelsGM !== false : s.settings.labelsPlayer !== false;
-      if (showLabels && m.labels && m.labels.length) {
+      // источник подписей задаёт окно (мастер: карта + свои, с флагом hidden; игрок: только открытые мастером)
+      var labelList = r.labelSource ? r.labelSource() : m.labels;
+      if (showLabels && labelList && labelList.length) {
         ctx.save();
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
-        m.labels.forEach(function (lb) {
+        labelList.forEach(function (lb) {
           if (!lb || !lb.text) return;
-          if (!gm && cellFogged(Math.floor(lb.x), Math.floor(lb.y))) return;
+          if (!gm && (lb.hidden || cellFogged(Math.floor(lb.x), Math.floor(lb.y)))) return;
           var fpx = (lb.size || (lb.kind === 'area' ? 0.42 : 0.26)) * px;
           if (fpx < 4) return;
           ctx.font = (lb.kind === 'area' ? 'italic ' : '') + fpx.toFixed(1) + "px Georgia, 'Times New Roman', serif";
           ctx.lineWidth = fpx * 0.21;
-          ctx.strokeStyle = '#000'; ctx.fillStyle = '#f3e6c4';
+          ctx.globalAlpha = lb.hidden ? 0.45 : 1;     // мастеру скрытая от игроков подпись видна бледной
+          ctx.strokeStyle = '#000'; ctx.fillStyle = lb.hidden ? '#9fc3ff' : '#f3e6c4';
           var lx = ox + lb.x * px, ly = oy + lb.y * px;
           ctx.strokeText(lb.text, lx, ly);
           ctx.fillText(lb.text, lx, ly);

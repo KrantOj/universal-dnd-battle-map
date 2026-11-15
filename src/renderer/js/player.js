@@ -88,7 +88,8 @@
       doors: msg.doors || [],
       round: msg.round,
       turnId: msg.turnId || null,
-      settings: Object.assign(defaults(), msg.settings || {})
+      settings: Object.assign(defaults(), msg.settings || {}),
+      labels: msg.labels || []
     };
     if (scene.settings.playerView !== prevMode) lastBox = '';
     r.setScene(scene);
@@ -292,6 +293,7 @@
       splash = document.getElementById('splash');
       buildShowcase();
       r = VTT.render.createRenderer(canvas, { mode: 'player' });
+      r.labelSource = function () { return (scene && scene.labels) || []; };
       r.onresize = function () { if (map && scene) { lastBox = ''; applyView('instant'); } };
       VTT.sync.listen(receive);
       VTT.sync.hello();
