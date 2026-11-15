@@ -62,6 +62,7 @@
       renderer.setClearColor(0x000000, 0);
     } catch (e) {
       failed = true; renderer = null;
+      console.error('dice3d: не удалось создать WebGL-контекст, кубики показываются плоским способом:', e);   // console.error уходит в main.log
       return null;
     }
     return renderer;
@@ -139,7 +140,15 @@
 
   var BASE_MS = 1150, FAST_MS = 800;
 
+  // любой сбой при построении сцены → один раз пишем в лог, дальше показываем плоские кубики
   function play(canvas, dice, o) {
+    try { return playUnsafe(canvas, dice, o); } catch (e) {
+      failed = true;
+      console.error('dice3d: ошибка 3D-анимации, кубики показываются плоским способом:', e);
+      return null;
+    }
+  }
+  function playUnsafe(canvas, dice, o) {
     o = o || {};
     var THREE = T(), list = plan(dice);
     var r = list && ensureRenderer(canvas);

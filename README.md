@@ -11,7 +11,7 @@ A free battle-map tool for tabletop RPG game masters (built around D&D 5e). Run 
 - Grid battle maps with fog of war, doors, walls that block sight and movement, difficult terrain, water and heights.
 - Tokens, ruler, ping, undo; a token library you can extend.
 - **Two screens:** a GM window and a clean player window for a second monitor or projector.
-- Combat: initiative, HP, conditions, counters, dice roller (`2d20kh1+5`), battle log saved as a note.
+- Combat: initiative, HP, conditions, counters, dice roller (`2d20kh1+5`) with 3D dice shown in the player window, battle log saved as a note.
 - **Showcase:** show portraits, crests and illustrations to the players.
 - **Music:** playlists from folders, crossfade, choose the output device (e.g. speakers while you wear headphones).
 - **Map editor:** make a map from any image: grid, walls, doors, terrain, heights, check, test in battle.
@@ -50,7 +50,7 @@ node node_modules/electron/install.js
 npm start
 ```
 
-`node node_modules/electron/install.js` downloads the Electron binary (npm blocks install scripts by default). Tests: `npm test`; end-to-end run: `npm run smoke`; installers: `npm run dist` (output in `dist/`). Release process: [docs/RELEASE.md](docs/RELEASE.md). Architecture and map format: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/MAP-FORMAT.md](docs/MAP-FORMAT.md).
+`node node_modules/electron/install.js` downloads the Electron binary (npm blocks install scripts by default). Tests: `npm test`; end-to-end run: `npm run smoke`; installers: `npm run dist` (output in `dist/`). Release process: [docs/RELEASE.md](docs/RELEASE.md). 3D dice models are built from the STL files in `assets/dice/` with `node scripts/build-dice.js` (output: `src/renderer/js/dice-models.js`; rendering uses the bundled three.js in `src/renderer/vendor/`). Architecture and map format: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/MAP-FORMAT.md](docs/MAP-FORMAT.md).
 
 ## License
 
@@ -69,7 +69,7 @@ npm start
 - Карты с сеткой, туман войны, двери, стены, закрывающие обзор и движение, труднопроходимая местность, вода и высоты.
 - Токены, линейка, пинг, отмена действий; библиотека токенов, которую можно пополнять.
 - **Два экрана:** окно мастера и чистое окно для игроков на втором мониторе или проекторе.
-- Бой: инициатива, HP, состояния, счётчики, кубики (`2d20kh1+5`), журнал боя в виде заметки.
+- Бой: инициатива, HP, состояния, счётчики, кубики (`2d20kh1+5`) с 3D-анимацией в окне игроков, журнал боя в виде заметки.
 - **Показ:** портреты, гербы и иллюстрации игрокам.
 - **Музыка:** плейлисты из папок, кроссфейд, выбор устройства вывода (например, колонки, пока вы в наушниках).
 - **Редактор карт:** карта из любой картинки — сетка, стены, двери, местность, высоты, проверка, «Проверить в бою».
@@ -108,7 +108,7 @@ node node_modules/electron/install.js
 npm start
 ```
 
-`node node_modules/electron/install.js` скачивает бинарник Electron (npm по умолчанию блокирует install-скрипты). Тесты: `npm test`; сквозной прогон: `npm run smoke`; установщики: `npm run dist` (результат в `dist/`). Выпуск релиза: [docs/RELEASE.md](docs/RELEASE.md). Архитектура и формат карты: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/MAP-FORMAT.md](docs/MAP-FORMAT.md).
+`node node_modules/electron/install.js` скачивает бинарник Electron (npm по умолчанию блокирует install-скрипты). Тесты: `npm test`; сквозной прогон: `npm run smoke`; установщики: `npm run dist` (результат в `dist/`). Выпуск релиза: [docs/RELEASE.md](docs/RELEASE.md). Модели 3D-кубиков собираются из STL в `assets/dice/` командой `node scripts/build-dice.js` (результат: `src/renderer/js/dice-models.js`; рисует встроенный three.js из `src/renderer/vendor/`). Архитектура и формат карты: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/MAP-FORMAT.md](docs/MAP-FORMAT.md).
 
 ## Лицензия
 
