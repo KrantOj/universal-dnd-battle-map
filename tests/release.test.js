@@ -23,8 +23,8 @@ test('CHANGELOG: разделы не смешиваются, неизвестн�
 
 test('имена файлов релиза совпадают с artifactName из electron-builder.yml', () => {
   const yml = fs.readFileSync(path.join(__dirname, '..', 'electron-builder.yml'), 'utf8');
-  const f = releaseFiles('1.2.3', ['a.exe.blockmap', 'x']);
-  assert.deepStrictEqual(f, ['Universal-DnD-Battle-map-Setup-1.2.3.exe', 'Universal-DnD-Battle-map-1.2.3-portable.exe', 'latest.yml', 'a.exe.blockmap']);
+  const f = releaseFiles('1.2.3', ['Universal-DnD-Battle-map-Setup-1.2.2.exe.blockmap', 'Universal-DnD-Battle-map-Setup-1.2.3.exe.blockmap', 'x']);
+  assert.deepStrictEqual(f, ['Universal-DnD-Battle-map-Setup-1.2.3.exe', 'Universal-DnD-Battle-map-1.2.3-portable.exe', 'latest.yml', 'Universal-DnD-Battle-map-Setup-1.2.3.exe.blockmap']);
   assert.ok(yml.includes('artifactName: "Universal-DnD-Battle-map-Setup-${version}.exe"'));
   assert.ok(yml.includes('artifactName: "Universal-DnD-Battle-map-${version}-portable.exe"'));
 });

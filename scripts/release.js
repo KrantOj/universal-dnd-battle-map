@@ -29,7 +29,7 @@ function changelogSection(text, version) {
 function releaseFiles(version, names) {
   const setup = `Universal-DnD-Battle-map-Setup-${version}.exe`;
   const portable = `Universal-DnD-Battle-map-${version}-portable.exe`;
-  const maps = names.filter((n) => n.endsWith('.blockmap'));
+  const maps = names.filter((n) => n === setup + '.blockmap');   // только blockmap этой версии (в dist/ лежат и старые)
   return [setup, portable, 'latest.yml', ...maps];
 }
 
