@@ -3,6 +3,18 @@
 Формат раздела: `## [X.Y.Z] - дата`. Скрипт `npm run release` берёт текст раздела текущей версии из package.json как описание релиза.
 Section format: `## [X.Y.Z] - date`. `npm run release` uses the section of the current package.json version as the release notes.
 
+## [1.1.0] - 2026-11-16
+
+**RU**
+- Скины 3D-костей: в «Настройки → Кости (3D)» можно выбрать вид костей (Классика, Кость, Обсидиан, Изумруд, Тайная магия) и сразу посмотреть пробный бросок. Выбранный скин видят игроки.
+- Свои скины: папка со `skin.json` и картинками (цвет и материал корпуса, текстура, карта рельефа, цвет, контур и свечение цифр) кладётся в папку скинов; кнопка «Открыть папку скинов» открывает её. Инструкция, в том числе по Blender: `docs/DICE-SKINS.ru.md`, готовый образец: `docs/dice-skin-example`.
+- Обновление теперь спрашивает разрешения: установленная версия больше не скачивает новую версию сама, а показывает плашку «Доступна версия X» с кнопкой «Скачать обновление» (в окне «О программе» тоже). Установка по-прежнему по кнопке «Установить и перезапустить».
+
+**EN**
+- 3D dice skins: pick the look of the dice in "Settings → Dice (3D)" (Classic, Bone, Obsidian, Emerald, Arcane) and preview it with a sample roll. Players see the selected skin.
+- Custom skins: a folder with `skin.json` and images (body colour and material, texture, normal map, number colour, outline and glow) goes into the skins folder; the "Open skins folder" button opens it. Guide, including Blender: `docs/DICE-SKINS.en.md`, ready sample: `docs/dice-skin-example`.
+- Updates now ask first: the installed version no longer downloads a new version by itself; it shows "Version X is available" with a "Download update" button (also in the About window). Installing is still done with "Install and restart".
+
 ## [1.0.4] - 2026-11-16
 
 **RU**
