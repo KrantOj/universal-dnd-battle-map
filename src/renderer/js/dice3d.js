@@ -15,7 +15,6 @@
 
   var MODEL_KEY = { 2: 'd2', 4: 'd4', 6: 'd6', 8: 'd8', 10: 'd10', 12: 'd12', 20: 'd20', 100: 'd10' };
   var MAX_DICE = 10;      // больше — не успеем нормально показать, ведущий 2D-режим
-  var BODY = 0x2b3a56, EDGE = 0xb89f5a, GOLD = '#f6e7b8';
 
   // ------------------------------------------------------------ чистая логика (без WebGL)
   // подпись грани по значению v (1..N) и режиму кубика
@@ -56,7 +55,7 @@
   function ensureRenderer(canvas) {
     if (renderer && canvasOf === canvas) return renderer;
     try {
-      if (renderer) { renderer.dispose(); renderer = null; }
+      if (renderer) { try { renderer.forceContextLoss(); } catch (_) { /* ignore */ } renderer.dispose(); renderer = null; }
       renderer = new (T().WebGLRenderer)({ canvas: canvas, alpha: true, antialias: true });
       canvasOf = canvas;
       renderer.setClearColor(0x000000, 0);
@@ -72,34 +71,68 @@
     return !failed && !!T() && !!VTT.diceModels && !!plan(dice);
   }
 
+  // UV без развёртки из Blender: каждая грань проецируется в свою плоскость (x,u — оси грани), 1 «плитка» ≈ 2 единицы модели.
+  // Центр грани = середина плитки, поэтому стык плиток лежит далеко от цифры и текстуре не обязательно быть бесшовной (пока mapScale ≲ 1.4).
+  function planarUv(m) {
+    var P = m.pos, uv = new Float32Array(P.length / 3 * 2), t, i, k;
+    function sub3(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+    function dot3(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+    function cross3(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
+    function unit3(a) { var l = Math.sqrt(dot3(a, a)) || 1; return [a[0] / l, a[1] / l, a[2] / l]; }
+    for (t = 0; t < P.length / 9; t++) {
+      var v = [0, 1, 2].map(function (j) { return [P[t * 9 + j * 3], P[t * 9 + j * 3 + 1], P[t * 9 + j * 3 + 2]]; });
+      var n = unit3(cross3(sub3(v[1], v[0]), sub3(v[2], v[0])));
+      var best = null, bd = 0.98;
+      for (i = 0; i < m.faces.length; i++) { var d = dot3(m.faces[i].n, n); if (d > bd) { bd = d; best = m.faces[i]; } }
+      var ox, ux, org;
+      if (best) { ux = best.u; ox = unit3(cross3(best.u, best.n)); org = best.c; }
+      else {                                              // грань без подписи (бок монеты): оси от самого треугольника
+        var up = Math.abs(n[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+        ox = unit3(cross3(up, n)); ux = cross3(n, ox); org = v[0];
+      }
+      for (k = 0; k < 3; k++) {
+        var rel = sub3(v[k], org);
+        uv[(t * 3 + k) * 2] = dot3(rel, ox) * 0.5 + 0.5;
+        uv[(t * 3 + k) * 2 + 1] = dot3(rel, ux) * 0.5 + 0.5;
+      }
+    }
+    return uv;
+  }
+
   function bodyGeometry(key) {
     if (geoCache[key]) return geoCache[key];
     var m = VTT.diceModels[key], g = new (T().BufferGeometry)();
     g.setAttribute('position', new (T().BufferAttribute)(new Float32Array(m.pos), 3));
     g.computeVertexNormals();                              // не индексирована → плоское затенение по граням
+    g.setAttribute('uv', new (T().BufferAttribute)(planarUv(m), 2));   // для текстур скина: плоская проекция по каждой грани
     geoCache[key] = { geo: g, edges: new (T().EdgesGeometry)(g, 12) };
     return geoCache[key];
   }
 
-  function labelTexture(text) {
-    if (texCache[text]) return texCache[text];
+  function labelTexture(text, nm) {
+    var key = [text, nm.color, nm.outline, nm.font, nm.glow].join('|');
+    if (texCache[key]) return texCache[key];
     var c = document.createElement('canvas'), n = 256;
     c.width = c.height = n;
     var x = c.getContext('2d'), two = text.length > 1;
     var fs = two ? 132 : 170;
-    x.font = '700 ' + fs + 'px Georgia, "Times New Roman", serif';
+    x.font = '700 ' + fs + 'px ' + nm.font;
     x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.lineJoin = 'round'; x.lineWidth = 14; x.strokeStyle = 'rgba(0,0,0,.55)';
-    x.strokeText(text, n / 2, n / 2 + 6);
-    x.fillStyle = GOLD;
+    x.lineJoin = 'round'; x.lineWidth = 14; x.strokeStyle = nm.outline;
+    x.globalAlpha = 0.55; x.strokeText(text, n / 2, n / 2 + 6); x.globalAlpha = 1;
+    if (nm.glow) { x.shadowColor = nm.glow; x.shadowBlur = 26; }      // свечение цифр
+    x.fillStyle = nm.color;
     x.fillText(text, n / 2, n / 2 + 6);
+    if (nm.glow) x.fillText(text, n / 2, n / 2 + 6);                  // второй проход делает свечение плотнее
+    x.shadowBlur = 0;
     if (/^[69]0?$/.test(text)) {                         // 6/9 не спутать: подчёркивание
       var w = x.measureText(text).width;
       x.fillRect(n / 2 - w / 2, n / 2 + fs * 0.42, w, 12);
     }
     var tex = new (T().CanvasTexture)(c);
     tex.anisotropy = 4;
-    texCache[text] = tex;
+    if (T().SRGBColorSpace) tex.colorSpace = T().SRGBColorSpace;
+    texCache[key] = tex;
     return tex;
   }
 
@@ -111,20 +144,28 @@
     return new THREE.Quaternion().setFromRotationMatrix(m).invert();
   }
 
-  function buildDie(spec) {
+  function buildDie(spec, skin) {
     var THREE = T(), model = VTT.diceModels[spec.key], g = bodyGeometry(spec.key);
     var root = new THREE.Group(), mats = [];
-    var bodyMat = new THREE.MeshStandardMaterial({ color: BODY, metalness: 0.45, roughness: 0.38, flatShading: true, transparent: true });
+    var sb = skin.body, tx = skin.textures || {};
+    var bodyMat = new THREE.MeshStandardMaterial({ color: sb.color, metalness: sb.metalness, roughness: sb.roughness, flatShading: true, transparent: true });
+    ['map', 'normalMap', 'roughnessMap'].forEach(function (k) {
+      if (!tx[k]) return;
+      tx[k].center.set(0.5, 0.5);                           // масштаб от середины плитки
+      tx[k].repeat.set(sb.mapScale, sb.mapScale);
+      bodyMat[k] = tx[k];
+    });
+    if (tx.normalMap) bodyMat.normalScale.set(sb.normalScale, sb.normalScale);
     root.add(new THREE.Mesh(g.geo, bodyMat)); mats.push(bodyMat);
-    var lineMat = new THREE.LineBasicMaterial({ color: EDGE, transparent: true, opacity: 0.85 });
+    var lineMat = new THREE.LineBasicMaterial({ color: skin.edges.color, transparent: true, opacity: skin.edges.opacity });
     root.add(new THREE.LineSegments(g.edges, lineMat)); mats.push(lineMat);
     var target = null;
     model.faces.forEach(function (f) {
       if (f.v === spec.v) target = f;
-      var mat = new THREE.MeshBasicMaterial({ map: labelTexture(faceLabel(spec.mode, f.v)), transparent: true, depthWrite: false,
+      var mat = new THREE.MeshBasicMaterial({ map: labelTexture(faceLabel(spec.mode, f.v), skin.numbers), transparent: true, depthWrite: false,
         polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
       mats.push(mat);
-      var side = f.r * 1.75;
+      var side = f.r * 1.75 * skin.numbers.size;
       var plane = new THREE.Mesh(new THREE.PlaneGeometry(side, side), mat);
       var n = new THREE.Vector3().fromArray(f.n), u = new THREE.Vector3().fromArray(f.u);
       var x = new THREE.Vector3().crossVectors(u, n).normalize();
@@ -153,7 +194,8 @@
     var THREE = T(), list = plan(dice);
     var r = list && ensureRenderer(canvas);
     if (!r) return null;
-    var W = window.innerWidth, H = window.innerHeight, dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var skin = o.skin || VTT.diceSkin.builtin(VTT.diceSkin.DEFAULT_ID);
+    var W = o.w || window.innerWidth, H = o.h || window.innerHeight, dpr = Math.min(window.devicePixelRatio || 1, 2);
     r.setPixelRatio(dpr); r.setSize(W, H, false);
     canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
 
@@ -174,7 +216,7 @@
     var cx = o.cx == null ? W / 2 : o.cx, cy = o.cy == null ? H / 2 : o.cy;
 
     var dies = list.map(function (spec, i) {
-      var d = buildDie(spec), row = Math.floor(i / cols), inRow = (row === rows - 1) ? n - row * cols : cols;
+      var d = buildDie(spec, skin), row = Math.floor(i / cols), inRow = (row === rows - 1) ? n - row * cols : cols;
       var col = i - row * cols;
       var px = cx + (col - (inRow - 1) / 2) * cell, py = cy + (row - (rows - 1) / 2) * cell;
       d.rest = new THREE.Vector3((px - W / 2) / ppu, -(py - H / 2) / ppu, 0);

@@ -101,6 +101,61 @@
     paint();
   }
 
+  // выбор скина костей (глобальная настройка приложения) + пробный бросок на холсте-превью
+  function buildDice(body, cfg) {
+    var D3 = VTT.dice3d, S = VTT.diceSkin;
+    if (!D3 || !S) return;
+    body.appendChild(cfg.el('h3', null, tr('settings.dice')));
+    var row = cfg.el('div', 'cfg-row');
+    row.appendChild(cfg.el('div', 'cfg-lbl', tr('settings.dice.skin')));
+    var sel = cfg.el('select');
+    row.appendChild(sel);
+    body.appendChild(row);
+    var cv = cfg.el('canvas', 'dice-preview');
+    body.appendChild(cv);
+    var btns = cfg.el('div', 'cfg-row dice-btns');
+    var bRoll = cfg.el('button', null, tr('settings.dice.roll')); bRoll.type = 'button';
+    var bFolder = cfg.el('button', null, tr('settings.dice.folder')); bFolder.type = 'button';
+    var bRefresh = cfg.el('button', null, tr('settings.dice.refresh')); bRefresh.type = 'button';
+    btns.appendChild(bRoll); btns.appendChild(bFolder); btns.appendChild(bRefresh);
+    body.appendChild(btns);
+    body.appendChild(cfg.el('div', 'cfg-note', tr('settings.dice.note')));
+
+    var handle = null;
+    function sample() {
+      var dice = [{ s: 20, v: 1 + Math.floor(Math.random() * 20), k: true }, { s: 6, v: 1 + Math.floor(Math.random() * 6), k: true }];
+      if (!D3.available(dice)) { cv.style.display = 'none'; bRoll.hidden = true; return; }
+      S.ensure(S.current()).then(function (skin) {
+        if (handle) { handle.stop(); handle = null; }
+        handle = D3.play(cv, dice, { skin: skin, w: 360, h: 170, cx: 180, cy: 85, size: 150, fast: true });
+        if (!handle) { cv.style.display = 'none'; bRoll.hidden = true; }
+      });
+    }
+    function fill(refresh) {
+      return S.list(refresh).then(function (items) {
+        sel.textContent = '';
+        [[false, tr('settings.dice.group.builtin')], [true, tr('settings.dice.group.user')]].forEach(function (g) {
+          var part = items.filter(function (i) { return i.user === g[0]; });
+          if (!part.length) return;
+          var og = cfg.el('optgroup'); og.label = g[1];
+          part.forEach(function (i) { var o = cfg.el('option', null, i.name); o.value = i.id; og.appendChild(o); });
+          sel.appendChild(og);
+        });
+        sel.value = S.current();
+        if (sel.value !== S.current()) { sel.value = S.DEFAULT_ID; S.setCurrent(S.DEFAULT_ID); }
+      });
+    }
+    sel.onchange = function () {
+      S.setCurrent(sel.value);
+      window.host.settings.set({ diceSkin: sel.value }).catch(function () { /* ignore */ });
+      sample();
+    };
+    bRoll.onclick = sample;
+    bFolder.onclick = function () { window.host.diceSkins.openFolder().catch(function () { /* ignore */ }); };
+    bRefresh.onclick = function () { S.forget(); fill(true).then(sample); };
+    fill(false).then(sample);
+  }
+
   function build() {
     var body = $('setBody');
     body.textContent = '';
@@ -122,6 +177,8 @@
     body.appendChild(upd.el);
     window.host.settings.get().then(function (s) { upd.input.checked = s.checkUpdates !== false; }).catch(function () { /* ignore */ });
     body.appendChild(cfg.el('div', 'cfg-note', tr('settings.updates.note')));
+
+    buildDice(body, cfg);
 
     // название
     var nameRow = cfg.el('div', 'cfg-row');

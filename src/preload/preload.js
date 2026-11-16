@@ -37,6 +37,11 @@ contextBridge.exposeInMainWorld('host', {
     openRelease: () => inv('update:openRelease'),
     onState: (cb) => sub('update:state', cb),
   },
+  diceSkins: {
+    list: () => inv('diceSkins:list'),
+    get: (id) => inv('diceSkins:get', id),
+    openFolder: () => inv('diceSkins:openFolder'),
+  },
   settings: {
     get: () => inv('settings:get'),
     set: (p) => inv('settings:set', p),

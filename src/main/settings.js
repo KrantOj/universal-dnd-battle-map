@@ -20,6 +20,7 @@ function set(patch) {
   const p = patch && typeof patch === 'object' ? Object.assign({}, patch) : {};
   if ('lang' in p && !LANGS.includes(p.lang)) delete p.lang;
   if ('checkUpdates' in p) p.checkUpdates = !!p.checkUpdates;
+  if ('diceSkin' in p && !/^(user:.{1,80}|[a-z]{1,30})$/.test(String(p.diceSkin))) delete p.diceSkin;   // id скина: встроенный (classic…) или user:<папка>
   const s = Object.assign(get(), p);
   store.writeJson(file(), s);
   return s;

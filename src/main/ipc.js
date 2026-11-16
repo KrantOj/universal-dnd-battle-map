@@ -14,6 +14,8 @@ const report = require('./report');
 const smoke = require('./smoke');
 const updater = require('./updater');
 const links = require('./links');
+const diceskins = require('./diceskins');
+const diceSkinsDir = () => path.join(app.getPath('userData'), 'dice-skins');
 
 const allowedSaves = new Set(); // paths returned by dialog.saveFile, consumable by fs.writeAbs once
 
@@ -35,6 +37,9 @@ function register() {
   h('app:openAbout', () => windows.openAbout());
   h('app:license', () => { try { return fs.readFileSync(path.join(app.getAppPath(), 'LICENSE'), 'utf8'); } catch (_) { return ''; } });
   h('app:openExternal', (e, url) => { if (!links.isAllowedExternal(url)) throw new Error('URL_NOT_ALLOWED'); return shell.openExternal(String(url)); });
+  h('diceSkins:list', () => diceskins.list(diceSkinsDir(), settings.get().lang));
+  h('diceSkins:get', (e, id) => diceskins.get(diceSkinsDir(), id));
+  h('diceSkins:openFolder', () => { diceskins.ensureDir(diceSkinsDir()); return shell.openPath(diceSkinsDir()); });
   h('update:state', () => updater.getState());
   h('update:check', () => updater.check(true));
   h('update:download', () => updater.download());

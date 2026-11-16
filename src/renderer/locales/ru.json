@@ -885,6 +885,14 @@
   "update.bar.download": "Скачать обновление",
   "update.bar.release": "Открыть страницу релиза",
   "update.bar.dismiss": "Скрыть до следующего запуска",
+  "settings.dice": "Кости (3D)",
+  "settings.dice.skin": "Скин костей",
+  "settings.dice.roll": "Бросить для примера",
+  "settings.dice.folder": "Открыть папку скинов",
+  "settings.dice.refresh": "Обновить список",
+  "settings.dice.group.builtin": "Встроенные",
+  "settings.dice.group.user": "Свои",
+  "settings.dice.note": "Выбранный скин видят игроки. Свои скины кладите в папку скинов: каждый в своей папке с файлом skin.json и картинками. Инструкция, в том числе по Blender: docs/DICE-SKINS.ru.md в репозитории приложения.",
   "settings.updates": "Проверять обновления",
   "settings.updates.note": "Раз в несколько часов приложение смотрит, вышла ли новая версия. Портативная версия только сообщает о ней со ссылкой, установленная — скачивает и ставит по вашей кнопке."
 }

@@ -1,0 +1,26 @@
+{
+  "format": "udbm-dice-skin/1",
+  "name": {
+    "ru": "Камень (пример)",
+    "en": "Stone (example)"
+  },
+  "body": {
+    "color": "#ffffff",
+    "metalness": 0.05,
+    "roughness": 0.8,
+    "map": "body.png",
+    "normalMap": "body_normal.png",
+    "mapScale": 1.5,
+    "normalScale": 1.2
+  },
+  "edges": {
+    "color": "#c9c0a8",
+    "opacity": 0.5
+  },
+  "numbers": {
+    "color": "#ffe9a8",
+    "outline": "#1a1208",
+    "glow": "#ff9b2e",
+    "size": 1
+  }
+}

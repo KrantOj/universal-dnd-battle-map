@@ -50,7 +50,7 @@ node node_modules/electron/install.js
 npm start
 ```
 
-`node node_modules/electron/install.js` downloads the Electron binary (npm blocks install scripts by default). Tests: `npm test`; end-to-end run: `npm run smoke`; installers: `npm run dist` (output in `dist/`). Release process: [docs/RELEASE.md](docs/RELEASE.md). 3D dice models are built from the STL files in `assets/dice/` with `node scripts/build-dice.js` (output: `src/renderer/js/dice-models.js`; rendering uses the bundled three.js in `src/renderer/vendor/`). Architecture and map format: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/MAP-FORMAT.md](docs/MAP-FORMAT.md).
+`node node_modules/electron/install.js` downloads the Electron binary (npm blocks install scripts by default). Tests: `npm test`; end-to-end run: `npm run smoke`; installers: `npm run dist` (output in `dist/`). Release process: [docs/RELEASE.md](docs/RELEASE.md). Dice skins (colour, texture, glowing numbers; made in Blender or any image editor): [docs/DICE-SKINS.en.md](docs/DICE-SKINS.en.md). 3D dice models are built from the STL files in `assets/dice/` with `node scripts/build-dice.js` (output: `src/renderer/js/dice-models.js`; rendering uses the bundled three.js in `src/renderer/vendor/`). Architecture and map format: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/MAP-FORMAT.md](docs/MAP-FORMAT.md).
 
 ## License
 
@@ -108,7 +108,7 @@ node node_modules/electron/install.js
 npm start
 ```
 
-`node node_modules/electron/install.js` скачивает бинарник Electron (npm по умолчанию блокирует install-скрипты). Тесты: `npm test`; сквозной прогон: `npm run smoke`; установщики: `npm run dist` (результат в `dist/`). Выпуск релиза: [docs/RELEASE.md](docs/RELEASE.md). Модели 3D-кубиков собираются из STL в `assets/dice/` командой `node scripts/build-dice.js` (результат: `src/renderer/js/dice-models.js`; рисует встроенный three.js из `src/renderer/vendor/`). Архитектура и формат карты: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/MAP-FORMAT.md](docs/MAP-FORMAT.md).
+`node node_modules/electron/install.js` скачивает бинарник Electron (npm по умолчанию блокирует install-скрипты). Тесты: `npm test`; сквозной прогон: `npm run smoke`; установщики: `npm run dist` (результат в `dist/`). Выпуск релиза: [docs/RELEASE.md](docs/RELEASE.md). Скины костей (цвет, текстура, светящиеся цифры; делаются в Blender или любом редакторе картинок): [docs/DICE-SKINS.ru.md](docs/DICE-SKINS.ru.md). Модели 3D-кубиков собираются из STL в `assets/dice/` командой `node scripts/build-dice.js` (результат: `src/renderer/js/dice-models.js`; рисует встроенный three.js из `src/renderer/vendor/`). Архитектура и формат карты: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/MAP-FORMAT.md](docs/MAP-FORMAT.md).
 
 ## Лицензия
 

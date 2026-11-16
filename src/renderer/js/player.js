@@ -234,9 +234,15 @@
   // ---- бросок кубиков, показанный мастером ----
   var rollEl = null, rollTimer = null, rollQ = [], rollBusy = false;
   // броски идут по очереди (инициатива всей партии): каждый ~1,2 с; одиночный виден ~2,5 с (бросок 0,6 с + результат)
+  var skinChain = Promise.resolve();
   function showRoll(msg) {
-    rollQ.push(msg);
-    if (!rollBusy) nextRoll();
+    // сначала готовим скин кубиков (из кэша — мгновенно; при любой ошибке ensure отдаёт «Классику»); цепочка сохраняет порядок бросков
+    skinChain = skinChain.then(function () {
+      return (VTT.diceSkin && msg.dice) ? VTT.diceSkin.ensure(msg.skin).then(function (s) { msg._skin = s; }, function () { /* ignore */ }) : null;
+    }).then(function () {
+      rollQ.push(msg);
+      if (!rollBusy) nextRoll();
+    });
   }
   function nextRoll() {
     var msg = rollQ.shift();
@@ -271,7 +277,7 @@
     if (use3d) {
       // 3D-кубики: центр сцены — по рамке .rs-stage; результат известен заранее, кубик лишь «приземляется» на нужную грань
       var box = q('.rs-stage').getBoundingClientRect();
-      roll3d = VTT.dice3d.play(q('.rs-3d'), msg.dice, { cx: box.left + box.width / 2, cy: box.top + box.height * 0.42, size: box.width * 0.9, fast: rollQ.length > 0 });
+      roll3d = VTT.dice3d.play(q('.rs-3d'), msg.dice, { cx: box.left + box.width / 2, cy: box.top + box.height * 0.42, size: box.width * 0.9, fast: rollQ.length > 0, skin: msg._skin });
       if (roll3d) { rollEl.classList.add('d3'); throwMs = roll3d.landMs; } else use3d = false;
     }
     if (!use3d) rollFlick = setInterval(function () { num.textContent = String(1 + Math.floor(Math.random() * sides)); }, 55);

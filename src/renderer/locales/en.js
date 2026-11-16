@@ -889,6 +889,14 @@
     "update.bar.download": "Download update",
     "update.bar.release": "Open the release page",
     "update.bar.dismiss": "Hide until next launch",
+    "settings.dice": "Dice (3D)",
+    "settings.dice.skin": "Dice skin",
+    "settings.dice.roll": "Roll a sample",
+    "settings.dice.folder": "Open skins folder",
+    "settings.dice.refresh": "Refresh list",
+    "settings.dice.group.builtin": "Built-in",
+    "settings.dice.group.user": "Custom",
+    "settings.dice.note": "Players see the selected skin. Put your own skins into the skins folder: each in its own folder with a skin.json file and images. Guide, including Blender: docs/DICE-SKINS.en.md in the app repository.",
     "settings.updates": "Check for updates",
     "settings.updates.note": "Every few hours the app checks whether a new version is out. The portable build only tells you and links to the release; the installed build downloads it and installs when you press the button."
   };
