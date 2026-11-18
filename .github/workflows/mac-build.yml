@@ -1,15 +1,17 @@
 name: Mac build
 
-# Собирает .dmg (arm64 + x64, ad-hoc подпись, без нотаризации) и прикладывает к релизу.
-# Запускается при публикации релиза (npm run release -- --publish) или вручную: Actions -> Mac build -> Run workflow (tag = vX.Y.Z).
+# Собирает .dmg (arm64 + x64, ad-hoc подпись, без нотаризации).
+#  - при публикации релиза: прикладывает .dmg к этому релизу;
+#  - вручную (Actions -> Mac build -> Run workflow): собирает текущий main и сохраняет .dmg как артефакт запуска (релиз не нужен);
+#    если указать tag существующего релиза — дополнительно приложит .dmg к нему.
 on:
   release:
     types: [published]
   workflow_dispatch:
     inputs:
       tag:
-        description: "Тег релиза, к которому приложить .dmg (например v1.1.0)"
-        required: true
+        description: "Необязательно: тег существующего релиза (vX.Y.Z), к которому приложить .dmg"
+        required: false
 
 permissions:
   contents: write
@@ -20,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -30,7 +32,13 @@ jobs:
       - run: npx electron-builder --mac --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: udbm-mac-dmg
+          path: dist/*.dmg
+          retention-days: 3
       - name: Прикладываем .dmg к релизу
+        if: github.event.release.tag_name || inputs.tag
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.release.tag_name || inputs.tag }}
