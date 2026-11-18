@@ -1,5 +1,5 @@
 'use strict';
-const { Menu } = require('electron');
+const { Menu, app } = require('electron');
 const windows = require('./windows');
 const logger = require('./log');
 const { t } = require('./i18n');
@@ -12,7 +12,20 @@ function send(action) {
 function about() { windows.openAbout(); }
 
 function build() {
+  const isMac = process.platform === 'darwin';
   const template = [
+    ...(isMac ? [{
+      label: app.name,
+      submenu: [
+        { label: t('menu.help.about'), click: about },
+        { type: 'separator' },
+        { role: 'services' },
+        { type: 'separator' },
+        { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' },
+      ],
+    }] : []),
     {
       label: t('menu.file'),
       submenu: [
@@ -23,10 +36,11 @@ function build() {
         { label: t('menu.file.campaigns'), click: () => send('campaigns') },
         { label: t('menu.file.settings'), click: () => send('settings') },
         { label: t('menu.file.wizard'), click: () => send('wizard') },
-        { type: 'separator' },
-        { label: t('menu.file.quit'), role: 'quit' },
+        ...(isMac ? [] : [{ type: 'separator' }, { label: t('menu.file.quit'), role: 'quit' }]),
       ],
     },
+    // macOS: без стандартного меню «Правка» не работают ⌘C/⌘V/⌘Z в полях ввода
+    ...(isMac ? [{ role: 'editMenu' }] : []),
     {
       label: t('menu.view'),
       submenu: [
@@ -35,12 +49,13 @@ function build() {
         { label: t('menu.view.devtools'), role: 'toggleDevTools' },
       ],
     },
+    ...(isMac ? [{ role: 'windowMenu' }] : []),
     {
       label: t('menu.help'),
       submenu: [
         { label: t('menu.help.report'), click: () => send('report') },
         { label: t('menu.help.logs'), click: () => { logger.openFolder().catch(() => {}); } },
-        { label: t('menu.help.about'), click: about },
+        ...(isMac ? [] : [{ label: t('menu.help.about'), click: about }]),
       ],
     },
   ];

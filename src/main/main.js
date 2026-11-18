@@ -46,5 +46,6 @@ if (!smoke.enabled && !app.requestSingleInstanceLock()) {
     });
   }).catch((e) => logger.log.error('startup failed', e));
   app.on('before-quit', () => { kv.flushAll(); watcher.stop(); updater.stop(); });
-  app.on('window-all-closed', () => app.quit());
+  // macOS: приложение живёт без окон, окно вернётся по клику на значок (activate). В smoke выходим всегда.
+  app.on('window-all-closed', () => { if (process.platform !== 'darwin' || smoke.enabled) app.quit(); });
 }

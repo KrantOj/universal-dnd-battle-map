@@ -26,9 +26,11 @@ function compareVersions(a, b) {
 }
 function isNewer(remote, current) { return compareVersions(remote, current) === 1; }
 
-/** 'nsis' (установленная), 'portable', 'dev' (не упакована — не обновляем). */
-function detectMode({ portableDir, isPackaged }) {
+/** 'nsis' (установленная), 'portable', 'dev' (не упакована — не обновляем).
+ *  macOS: сборка без подписи, electron-updater там не работает — ведём себя как portable (сообщаем и даём ссылку на релиз). */
+function detectMode({ portableDir, isPackaged, platform }) {
   if (portableDir) return 'portable';
+  if (isPackaged && platform === 'darwin') return 'portable';
   return isPackaged ? 'nsis' : 'dev';
 }
 

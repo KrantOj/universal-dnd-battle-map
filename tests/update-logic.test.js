@@ -13,6 +13,12 @@ test('режим: portable по PORTABLE_EXECUTABLE_DIR, nsis если упак�
   assert.strictEqual(L.detectMode({ portableDir: undefined, isPackaged: false }), 'dev');
 });
 
+test('режим: macOS (без подписи) — как portable, не nsis; из исходников — dev', () => {
+  assert.strictEqual(L.detectMode({ isPackaged: true, platform: 'darwin' }), 'portable');
+  assert.strictEqual(L.detectMode({ isPackaged: false, platform: 'darwin' }), 'dev');
+  assert.strictEqual(L.detectMode({ isPackaged: true, platform: 'win32' }), 'nsis');
+});
+
 test('решение: nsis ставит, portable только сообщает, dev не трогает', () => {
   assert.strictEqual(L.decide({ mode: 'nsis', enabled: true }), 'install');
   assert.strictEqual(L.decide({ mode: 'portable', enabled: true }), 'notify');

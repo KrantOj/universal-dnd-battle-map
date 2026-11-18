@@ -13,6 +13,7 @@
     "smoke": "electron . --smoke",
     "smoke:wizard": "electron . --smoke-wizard",
     "dist": "electron-builder --win --publish never",
+    "dist:mac": "electron-builder --mac --publish never",
     "release": "node scripts/release.js"
   },
   "devDependencies": {

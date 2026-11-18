@@ -95,7 +95,7 @@ function install() {
 
 function start() {
   state.current = app.getVersion();
-  state.mode = L.detectMode({ portableDir: process.env.PORTABLE_EXECUTABLE_DIR, isPackaged: app.isPackaged });
+  state.mode = L.detectMode({ portableDir: process.env.PORTABLE_EXECUTABLE_DIR, isPackaged: app.isPackaged, platform: process.platform });
   logger.log.info(`updater: mode=${state.mode}, enabled=${enabled()}`);
   if (state.mode === 'dev') return;
   firstTimer = setTimeout(() => { check(false); }, L.CHECK_FIRST_MS);
